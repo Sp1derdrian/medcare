@@ -7,6 +7,7 @@ VALUES (
   'admin@admin',
   '$2b$10$SeasEoSwnw9l2lLrdiwVee2yW.g5hjy6VOjZIZp6J2mRyc3TpOgG2'
 );
+--putos todos
 INSERT INTO "permisos" (nombre) VALUES ('crear_paciente'), ('ver_expediente'), ('crear_receta'),('asignar_rol'),('asignar_permisos');
 
 INSERT INTO "usuario_rol" (usuario_id, rol_id) VALUES (1,1);
