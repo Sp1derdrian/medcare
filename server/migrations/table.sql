@@ -37,241 +37,252 @@ DROP TABLE IF EXISTS "acciones" CASCADE;
 -- 2. CREACIÓN DE TABLAS (CREATE)
 -- ==========================================
 CREATE TABLE "usuarios" (
-  "id" SERIAL PRIMARY KEY,
+  "id_usuario" SERIAL PRIMARY KEY,
   "username" varchar(50) UNIQUE NOT NULL,
   "password" varchar(255) NOT NULL,
   "email" varchar(100) UNIQUE NOT NULL,
-  "created_at" timestamp DEFAULT CURRENT_TIMESTAMP
+  "created_at" timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE "roles" (
-  "id" SERIAL PRIMARY KEY,
-  "nombre" varchar
+  "id_rol" SERIAL PRIMARY KEY,
+  "nombre" varchar(50) UNIQUE NOT NULL
 );
 
 CREATE TABLE "permisos" (
-  "id" SERIAL PRIMARY KEY,
-  "nombre" varchar
+  "id_permiso" SERIAL PRIMARY KEY,
+  "nombre" varchar(100) UNIQUE NOT NULL
 );
 
 CREATE TABLE "rol_permiso" (
-  "id" SERIAL PRIMARY KEY,
-  "rol_id" integer,
-  "permiso_id" integer
+  "id_rol_permiso" SERIAL PRIMARY KEY,
+  "id_rol" integer NOT NULL,
+  "id_permiso" integer NOT NULL,
+  UNIQUE ("id_rol", "id_permiso")
 );
 
 CREATE TABLE "usuario_rol" (
-  "id" SERIAL PRIMARY KEY,
-  "usuario_id" integer,
-  "rol_id" integer
+  "id_usuario_rol" SERIAL PRIMARY KEY,
+  "id_usuario" integer NOT NULL,
+  "id_rol" integer NOT NULL,
+  UNIQUE ("id_usuario", "id_rol")
 );
 
 CREATE TABLE "pacientes" (
-  "id" SERIAL PRIMARY KEY,
-  "nombre" varchar,
-  "apellido" varchar,
-  "fecha_nacimiento" date,
-  "sexo_id" integer,
-  "estado_civil_id" integer,
-  "grupo_sanguineo_id" integer,
-  "seguro_id" integer,
-  "telefono" varchar(10),       
-  "email" varchar,          
-  "direccion" text          
+  "id_paciente" SERIAL PRIMARY KEY,
+  "nombre" varchar(100) NOT NULL,
+  "apellido" varchar(100) NOT NULL,
+  "fecha_nacimiento" date NOT NULL,
+  "id_sexo" integer NOT NULL,
+  "id_estado_civil" integer,
+  "id_grupo_sanguineo" integer,
+  "id_seguro" integer,
+  "telefono" varchar(10),
+  "email" varchar(100),
+  "direccion" text
 );
 
 CREATE TABLE "doctores" (
-  "id" SERIAL PRIMARY KEY,
-  "nombre" varchar,
-  "apellido" varchar,
-  "cedula_profesional" varchar, 
-  "telefono" varchar(10)            
+  "id_doctor" SERIAL PRIMARY KEY,
+  "nombre" varchar(100) NOT NULL,
+  "apellido" varchar(100) NOT NULL,
+  "cedula_profesional" varchar(30) UNIQUE NOT NULL,
+  "telefono" varchar(10)
 );
 
 CREATE TABLE "especialidad_doctor" (
-  "id" SERIAL PRIMARY KEY,
-  "doctor" integer,
-  "especialidad" integer
+  "id_especialidad_doctor" SERIAL PRIMARY KEY,
+  "id_doctor" integer NOT NULL,
+  "id_especialidad" integer NOT NULL,
+  UNIQUE ("id_doctor", "id_especialidad")
 );
 
 CREATE TABLE "especialidades" (
-  "id" SERIAL PRIMARY KEY,
-  "nombre" varchar
+  "id_especialidad" SERIAL PRIMARY KEY,
+  "nombre" varchar(100) UNIQUE NOT NULL
 );
 
 CREATE TABLE "sexo" (
-  "id" SERIAL PRIMARY KEY,
-  "descripcion" varchar
+  "id_sexo" SERIAL PRIMARY KEY,
+  "descripcion" varchar(30) UNIQUE NOT NULL
 );
 
 CREATE TABLE "estado_civil" (
-  "id" SERIAL PRIMARY KEY,
-  "descripcion" varchar
+  "id_estado_civil" SERIAL PRIMARY KEY,
+  "descripcion" varchar(50) UNIQUE NOT NULL
 );
 
 CREATE TABLE "grupo_sanguineo" (
-  "id" SERIAL PRIMARY KEY,
-  "descripcion" varchar
+  "id_grupo_sanguineo" SERIAL PRIMARY KEY,
+  "descripcion" varchar(10) UNIQUE NOT NULL
 );
 
 CREATE TABLE "aseguradoras" (
-  "id" SERIAL PRIMARY KEY,
-  "nombre" varchar
+  "id_aseguradora" SERIAL PRIMARY KEY,
+  "nombre" varchar(100) UNIQUE NOT NULL
 );
 
 CREATE TABLE "seguros" (
-  "id" SERIAL PRIMARY KEY,
-  "aseguradora_id" integer,
-  "tipo_seguro_id" integer,
-  "numero_poliza" varchar
+  "id_seguro" SERIAL PRIMARY KEY,
+  "id_aseguradora" integer NOT NULL,
+  "id_tipo_seguro" integer NOT NULL,
+  "numero_poliza" varchar(50) NOT NULL
 );
 
 CREATE TABLE "tipos_seguro" (
-  "id" SERIAL PRIMARY KEY,
-  "descripcion" varchar
+  "id_tipo_seguro" SERIAL PRIMARY KEY,
+  "descripcion" varchar(100) UNIQUE NOT NULL
 );
 
 CREATE TABLE "citas" (
-  "id" SERIAL PRIMARY KEY,
-  "paciente_id" integer,
-  "doctor_id" integer,
-  "usuario_id" integer,
-  "tipo_cita_id" integer,
-  "fecha" timestamp,
-  "estado" varchar          
+  "id_cita" SERIAL PRIMARY KEY,
+  "id_paciente" integer NOT NULL,
+  "id_doctor" integer NOT NULL,
+  "id_usuario" integer NOT NULL,
+  "id_tipo_cita" integer NOT NULL,
+  "fecha" timestamp NOT NULL,
+  "estado" varchar(20) NOT NULL,
+  CHECK ("estado" IN ('Pendiente', 'Confirmada', 'Cancelada', 'Completada'))
 );
 
 CREATE TABLE "tipos_cita" (
-  "id" SERIAL PRIMARY KEY,
-  "descripcion" varchar
+  "id_tipo_cita" SERIAL PRIMARY KEY,
+  "descripcion" varchar(100) UNIQUE NOT NULL
 );
 
 CREATE TABLE "procedimientos" (
-  "id" SERIAL PRIMARY KEY,
-  "nombre" varchar
+  "id_procedimiento" SERIAL PRIMARY KEY,
+  "nombre" varchar(100) NOT NULL
 );
 
 CREATE TABLE "cita_procedimiento" (
-  "id" SERIAL PRIMARY KEY,
-  "cita_id" integer,
-  "procedimiento_id" integer
+  "id_cita_procedimiento" SERIAL PRIMARY KEY,
+  "id_cita" integer NOT NULL,
+  "id_procedimiento" integer NOT NULL,
+  UNIQUE ("id_cita", "id_procedimiento")
 );
 
 CREATE TABLE "historial_medico" (
-  "id" SERIAL PRIMARY KEY,
-  "paciente_id" integer,
-  "descripcion" text,
-  "fecha" timestamp
+  "id_historial_medico" SERIAL PRIMARY KEY,
+  "id_paciente" integer NOT NULL,
+  "descripcion" text NOT NULL,
+  "fecha" timestamp NOT NULL
 );
 
 CREATE TABLE "tratamientos" (
-  "id" SERIAL PRIMARY KEY,
-  "paciente_id" integer,
-  "descripcion" text,
-  "fecha_inicio" date,
-  "fecha_fin" date
+  "id_tratamiento" SERIAL PRIMARY KEY,
+  "id_paciente" integer NOT NULL,
+  "descripcion" text NOT NULL,
+  "fecha_inicio" date NOT NULL,
+  "fecha_fin" date,
+  CHECK ("fecha_fin" IS NULL OR "fecha_fin" >= "fecha_inicio")
 );
 
 CREATE TABLE "tratamiento_procedimiento" (
-  "id" SERIAL PRIMARY KEY,
-  "tratamiento_id" integer,
-  "procedimiento_id" integer
+  "id_tratamiento_procedimiento" SERIAL PRIMARY KEY,
+  "id_tratamiento" integer NOT NULL,
+  "id_procedimiento" integer NOT NULL,
+  UNIQUE ("id_tratamiento", "id_procedimiento")
 );
 
 CREATE TABLE "recetas" (
-  "id" SERIAL PRIMARY KEY,
-  "cita_id" integer,
-  "paciente_id" integer,
-  "doctor_id" integer,
-  "fecha" date
+  "id_receta" SERIAL PRIMARY KEY,
+  "id_cita" integer NOT NULL,
+  "fecha" date NOT NULL
 );
 
 CREATE TABLE "medicamentos" (
-  "id" SERIAL PRIMARY KEY,
-  "nombre" varchar
+  "id_medicamento" SERIAL PRIMARY KEY,
+  "nombre" varchar(100) UNIQUE NOT NULL
 );
 
 CREATE TABLE "receta_medicamento" (
-  "id" SERIAL PRIMARY KEY,
-  "receta_id" integer,
-  "medicamento_id" integer,
-  "dosis" varchar,
-  "frecuencia" varchar
+  "id_receta_medicamento" SERIAL PRIMARY KEY,
+  "id_receta" integer NOT NULL,
+  "id_medicamento" integer NOT NULL,
+  "dosis" varchar(100) NOT NULL,
+  "frecuencia" varchar(100) NOT NULL,
+  "periodo_administracion" varchar(100),
+  "observaciones" text,
+  UNIQUE ("id_receta", "id_medicamento")
 );
 
 CREATE TABLE "hospitalizaciones" (
-  "id" SERIAL PRIMARY KEY,
-  "paciente_id" integer,
-  "sala_id" integer,
-  "fecha_ingreso" date,
-  "fecha_alta" date
+  "id_hospitalizacion" SERIAL PRIMARY KEY,
+  "id_paciente" integer NOT NULL,
+  "id_sala" integer NOT NULL,
+  "fecha_ingreso" date NOT NULL,
+  "fecha_alta" date,
+  CHECK ("fecha_alta" IS NULL OR "fecha_alta" >= "fecha_ingreso")
 );
 
 CREATE TABLE "salas" (
-  "id" SERIAL PRIMARY KEY,
-  "numero" varchar,
-  "tipo" varchar
+  "id_sala" SERIAL PRIMARY KEY,
+  "numero" varchar(20) NOT NULL,
+  "tipo" varchar(50) NOT NULL
 );
 
 CREATE TABLE "hospitalizacion_procedimiento" (
-  "id" SERIAL PRIMARY KEY,
-  "hospitalizacion_id" integer,
-  "procedimiento_id" integer
+  "id_hospitalizacion_procedimiento" SERIAL PRIMARY KEY,
+  "id_hospitalizacion" integer NOT NULL,
+  "id_procedimiento" integer NOT NULL,
+  UNIQUE ("id_hospitalizacion", "id_procedimiento")
 );
 
 CREATE TABLE "hospitalizacion_medicamento" (
-  "id" SERIAL PRIMARY KEY,
-  "hospitalizacion_id" integer,
-  "medicamento_id" integer
+  "id_hospitalizacion_medicamento" SERIAL PRIMARY KEY,
+  "id_hospitalizacion" integer NOT NULL,
+  "id_medicamento" integer NOT NULL,
+  "periodo_administracion" varchar(100),
+  "observaciones" text,
+  UNIQUE ("id_hospitalizacion", "id_medicamento")
 );
 
 CREATE TABLE "bitacora" (
-  "id" SERIAL PRIMARY KEY,
-  "usuario_id" integer,
-  "accion" integer,
-  "fecha" timestamp
+  "id_bitacora" SERIAL PRIMARY KEY,
+  "id_usuario" integer NOT NULL,
+  "id_accion" integer NOT NULL,
+  "fecha" timestamp NOT NULL
 );
 
 CREATE TABLE "acciones" (
-  "id" SERIAL PRIMARY KEY,
-  "descripcion" varchar
+  "id_accion" SERIAL PRIMARY KEY,
+  "descripcion" varchar(100) UNIQUE NOT NULL
 );
 
 -- ==========================================
 -- 3. LLAVES FORÁNEAS (ALTER TABLE)
 -- ==========================================
-ALTER TABLE "rol_permiso" ADD FOREIGN KEY ("rol_id") REFERENCES "roles" ("id");
-ALTER TABLE "rol_permiso" ADD FOREIGN KEY ("permiso_id") REFERENCES "permisos" ("id");
-ALTER TABLE "usuario_rol" ADD FOREIGN KEY ("usuario_id") REFERENCES "usuarios" ("id");
-ALTER TABLE "usuario_rol" ADD FOREIGN KEY ("rol_id") REFERENCES "roles" ("id");
-ALTER TABLE "pacientes" ADD FOREIGN KEY ("sexo_id") REFERENCES "sexo" ("id");
-ALTER TABLE "pacientes" ADD FOREIGN KEY ("estado_civil_id") REFERENCES "estado_civil" ("id");
-ALTER TABLE "pacientes" ADD FOREIGN KEY ("grupo_sanguineo_id") REFERENCES "grupo_sanguineo" ("id");
-ALTER TABLE "pacientes" ADD FOREIGN KEY ("seguro_id") REFERENCES "seguros" ("id");
-ALTER TABLE "especialidad_doctor" ADD FOREIGN KEY ("doctor") REFERENCES "doctores" ("id");
-ALTER TABLE "especialidad_doctor" ADD FOREIGN KEY ("especialidad") REFERENCES "especialidades" ("id");
-ALTER TABLE "seguros" ADD FOREIGN KEY ("aseguradora_id") REFERENCES "aseguradoras" ("id");
-ALTER TABLE "seguros" ADD FOREIGN KEY ("tipo_seguro_id") REFERENCES "tipos_seguro" ("id");
-ALTER TABLE "citas" ADD FOREIGN KEY ("paciente_id") REFERENCES "pacientes" ("id");
-ALTER TABLE "citas" ADD FOREIGN KEY ("doctor_id") REFERENCES "doctores" ("id");
-ALTER TABLE "citas" ADD FOREIGN KEY ("usuario_id") REFERENCES "usuarios" ("id");
-ALTER TABLE "citas" ADD FOREIGN KEY ("tipo_cita_id") REFERENCES "tipos_cita" ("id");
-ALTER TABLE "cita_procedimiento" ADD FOREIGN KEY ("cita_id") REFERENCES "citas" ("id");
-ALTER TABLE "cita_procedimiento" ADD FOREIGN KEY ("procedimiento_id") REFERENCES "procedimientos" ("id");
-ALTER TABLE "historial_medico" ADD FOREIGN KEY ("paciente_id") REFERENCES "pacientes" ("id");
-ALTER TABLE "tratamientos" ADD FOREIGN KEY ("paciente_id") REFERENCES "pacientes" ("id");
-ALTER TABLE "tratamiento_procedimiento" ADD FOREIGN KEY ("tratamiento_id") REFERENCES "tratamientos" ("id");
-ALTER TABLE "tratamiento_procedimiento" ADD FOREIGN KEY ("procedimiento_id") REFERENCES "procedimientos" ("id");
-ALTER TABLE "recetas" ADD FOREIGN KEY ("cita_id") REFERENCES "citas" ("id");
-ALTER TABLE "recetas" ADD FOREIGN KEY ("paciente_id") REFERENCES "pacientes" ("id");
-ALTER TABLE "recetas" ADD FOREIGN KEY ("doctor_id") REFERENCES "doctores" ("id");
-ALTER TABLE "receta_medicamento" ADD FOREIGN KEY ("receta_id") REFERENCES "recetas" ("id");
-ALTER TABLE "receta_medicamento" ADD FOREIGN KEY ("medicamento_id") REFERENCES "medicamentos" ("id");
-ALTER TABLE "hospitalizaciones" ADD FOREIGN KEY ("paciente_id") REFERENCES "pacientes" ("id");
-ALTER TABLE "hospitalizaciones" ADD FOREIGN KEY ("sala_id") REFERENCES "salas" ("id");
-ALTER TABLE "hospitalizacion_procedimiento" ADD FOREIGN KEY ("hospitalizacion_id") REFERENCES "hospitalizaciones" ("id");
-ALTER TABLE "hospitalizacion_procedimiento" ADD FOREIGN KEY ("procedimiento_id") REFERENCES "procedimientos" ("id");
-ALTER TABLE "hospitalizacion_medicamento" ADD FOREIGN KEY ("hospitalizacion_id") REFERENCES "hospitalizaciones" ("id");
-ALTER TABLE "hospitalizacion_medicamento" ADD FOREIGN KEY ("medicamento_id") REFERENCES "medicamentos" ("id");
-ALTER TABLE "bitacora" ADD FOREIGN KEY ("usuario_id") REFERENCES "usuarios" ("id");
-ALTER TABLE "bitacora" ADD FOREIGN KEY ("accion") REFERENCES "acciones" ("id");
+ALTER TABLE "rol_permiso" ADD FOREIGN KEY ("id_rol") REFERENCES "roles" ("id_rol");
+ALTER TABLE "rol_permiso" ADD FOREIGN KEY ("id_permiso") REFERENCES "permisos" ("id_permiso");
+ALTER TABLE "usuario_rol" ADD FOREIGN KEY ("id_usuario") REFERENCES "usuarios" ("id_usuario");
+ALTER TABLE "usuario_rol" ADD FOREIGN KEY ("id_rol") REFERENCES "roles" ("id_rol");
+ALTER TABLE "pacientes" ADD FOREIGN KEY ("id_sexo") REFERENCES "sexo" ("id_sexo");
+ALTER TABLE "pacientes" ADD FOREIGN KEY ("id_estado_civil") REFERENCES "estado_civil" ("id_estado_civil");
+ALTER TABLE "pacientes" ADD FOREIGN KEY ("id_grupo_sanguineo") REFERENCES "grupo_sanguineo" ("id_grupo_sanguineo");
+ALTER TABLE "pacientes" ADD FOREIGN KEY ("id_seguro") REFERENCES "seguros" ("id_seguro");
+ALTER TABLE "especialidad_doctor" ADD FOREIGN KEY ("id_doctor") REFERENCES "doctores" ("id_doctor");
+ALTER TABLE "especialidad_doctor" ADD FOREIGN KEY ("id_especialidad") REFERENCES "especialidades" ("id_especialidad");
+ALTER TABLE "seguros" ADD FOREIGN KEY ("id_aseguradora") REFERENCES "aseguradoras" ("id_aseguradora");
+ALTER TABLE "seguros" ADD FOREIGN KEY ("id_tipo_seguro") REFERENCES "tipos_seguro" ("id_tipo_seguro");
+ALTER TABLE "citas" ADD FOREIGN KEY ("id_paciente") REFERENCES "pacientes" ("id_paciente");
+ALTER TABLE "citas" ADD FOREIGN KEY ("id_doctor") REFERENCES "doctores" ("id_doctor");
+ALTER TABLE "citas" ADD FOREIGN KEY ("id_usuario") REFERENCES "usuarios" ("id_usuario");
+ALTER TABLE "citas" ADD FOREIGN KEY ("id_tipo_cita") REFERENCES "tipos_cita" ("id_tipo_cita");
+ALTER TABLE "cita_procedimiento" ADD FOREIGN KEY ("id_cita") REFERENCES "citas" ("id_cita");
+ALTER TABLE "cita_procedimiento" ADD FOREIGN KEY ("id_procedimiento") REFERENCES "procedimientos" ("id_procedimiento");
+ALTER TABLE "historial_medico" ADD FOREIGN KEY ("id_paciente") REFERENCES "pacientes" ("id_paciente");
+ALTER TABLE "tratamientos" ADD FOREIGN KEY ("id_paciente") REFERENCES "pacientes" ("id_paciente");
+ALTER TABLE "tratamiento_procedimiento" ADD FOREIGN KEY ("id_tratamiento") REFERENCES "tratamientos" ("id_tratamiento");
+ALTER TABLE "tratamiento_procedimiento" ADD FOREIGN KEY ("id_procedimiento") REFERENCES "procedimientos" ("id_procedimiento");
+ALTER TABLE "recetas" ADD FOREIGN KEY ("id_cita") REFERENCES "citas" ("id_cita");
+ALTER TABLE "receta_medicamento" ADD FOREIGN KEY ("id_receta") REFERENCES "recetas" ("id_receta");
+ALTER TABLE "receta_medicamento" ADD FOREIGN KEY ("id_medicamento") REFERENCES "medicamentos" ("id_medicamento");
+ALTER TABLE "hospitalizaciones" ADD FOREIGN KEY ("id_paciente") REFERENCES "pacientes" ("id_paciente");
+ALTER TABLE "hospitalizaciones" ADD FOREIGN KEY ("id_sala") REFERENCES "salas" ("id_sala");
+ALTER TABLE "hospitalizacion_procedimiento" ADD FOREIGN KEY ("id_hospitalizacion") REFERENCES "hospitalizaciones" ("id_hospitalizacion");
+ALTER TABLE "hospitalizacion_procedimiento" ADD FOREIGN KEY ("id_procedimiento") REFERENCES "procedimientos" ("id_procedimiento");
+ALTER TABLE "hospitalizacion_medicamento" ADD FOREIGN KEY ("id_hospitalizacion") REFERENCES "hospitalizaciones" ("id_hospitalizacion");
+ALTER TABLE "hospitalizacion_medicamento" ADD FOREIGN KEY ("id_medicamento") REFERENCES "medicamentos" ("id_medicamento");
+ALTER TABLE "bitacora" ADD FOREIGN KEY ("id_usuario") REFERENCES "usuarios" ("id_usuario");
+ALTER TABLE "bitacora" ADD FOREIGN KEY ("id_accion") REFERENCES "acciones" ("id_accion");
