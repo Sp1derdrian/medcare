@@ -1,5 +1,5 @@
 -- ==========================================
--- 1. LIMPIEZA DE TABLAS (DROP)
+-- Drop tables
 -- ==========================================
 DROP TABLE IF EXISTS "usuarios" CASCADE;
 DROP TABLE IF EXISTS "roles" CASCADE;
@@ -34,7 +34,7 @@ DROP TABLE IF EXISTS "bitacora" CASCADE;
 DROP TABLE IF EXISTS "acciones" CASCADE;
 
 -- ==========================================
--- 2. CREACIÓN DE TABLAS (CREATE)
+-- Tablas
 -- ==========================================
 CREATE TABLE "usuarios" (
   "id_usuario" SERIAL PRIMARY KEY,
@@ -251,7 +251,7 @@ CREATE TABLE "acciones" (
 );
 
 -- ==========================================
--- 3. LLAVES FORÁNEAS (ALTER TABLE)
+-- Constraints
 -- ==========================================
 ALTER TABLE "rol_permiso" ADD FOREIGN KEY ("id_rol") REFERENCES "roles" ("id_rol");
 ALTER TABLE "rol_permiso" ADD FOREIGN KEY ("id_permiso") REFERENCES "permisos" ("id_permiso");
