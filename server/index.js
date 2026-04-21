@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const bcrypt = require('bcrypt'); //hash y salt
-const jwt = require('jsonwebtoken'); //tokens
+const bcrypt = require('bcrypt'); // hash y salt
+const jwt = require('jsonwebtoken'); // tokens
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -33,20 +33,17 @@ app.get('/', (req, res) => {
 
 // Middleware para verificar el Token JWT
 const verificarToken = (req, res, next) => {
-  // El token suele enviarse en los headers como "Bearer <token>"
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Extraemos solo el token
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
     return res.status(403).json({ error: 'Acceso denegado. Se requiere un token.' });
   }
 
   try {
-    // Verificamos si el token es válido usando nuestro secreto
     const decodificado = jwt.verify(token, process.env.JWT_SECRET);
-    // Guardamos los datos decodificados (que incluye el id) en "req.usuario"
     req.usuario = decodificado; 
-    next(); // Todo está bien, le damos pase a la ruta
+    next(); 
   } catch (err) {
     return res.status(401).json({ error: 'Token inválido o expirado.' });
   }
@@ -57,9 +54,12 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
 
-// ----- RUTAS AUTH -----
 
-//Usuario Registro
+// ==========================================
+// ----- RUTAS AUTH -----
+// ==========================================
+
+// Usuario Registro
 app.post('/api/usuarios/registro', async (req,res) =>{
   try{
     const {username, email, password} = req.body;
@@ -67,21 +67,20 @@ app.post('/api/usuarios/registro', async (req,res) =>{
       'SELECT * FROM usuarios WHERE email = $1 OR username = $2',
       [email, username]
     );
-    if(userExists.rows.length>0){
+    
+    if(userExists.rows.length > 0){
       return res.status(400).json({error: 'Usuario o correo ya registrado, favor de registrar con uno nuevo'});
     }
-    //-------Security-------
 
-    //Salt (ruido único en cada pass)
     const saltRounds = 10;
     const salt = await bcrypt.genSalt(saltRounds);
-    //Hash (encriptación mezclada con Salt)
-    const hashedPassword = await bcrypt.hash(password,salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
+    // NUEVO: RETURNING id_usuario AS id
     const newUser = await pool.query(
     `INSERT INTO usuarios (username, email, password)
      VALUES($1,$2,$3)
-     RETURNING id, username, email, created_at`,
+     RETURNING id_usuario AS id, username, email, created_at`,
      [username, email, hashedPassword]
     );
     res.json({
@@ -92,14 +91,12 @@ app.post('/api/usuarios/registro', async (req,res) =>{
     console.error('Error en registro', err.message);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
-
 });
 
 // Usuario Login
 app.post('/api/usuarios/login', async (req, res) => {
   try {
     const { email, password } = req.body; 
-
     
     const userResult = await pool.query(
       'SELECT * FROM usuarios WHERE email = $1',
@@ -107,29 +104,28 @@ app.post('/api/usuarios/login', async (req, res) => {
     );
 
     if (userResult.rows.length === 0) {
-      // Por seguridad, siempre damos el mismo mensaje genérico
       return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
     }
 
     const usuario = userResult.rows[0];
-
-    //Comparamos el texto plano con el Hash de la BD
     const passwordCorrecto = await bcrypt.compare(password, usuario.password);
 
     if (!passwordCorrecto) {
       return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
     }
+    
+    // NUEVO: Usamos usuario.id_usuario porque en el SELECT * viene con ese nombre
     const token = jwt.sign(
-      { id: usuario.id }, 
+      { id: usuario.id_usuario }, 
       process.env.JWT_SECRET, 
       { expiresIn: '24h' }
     );
-    //Res de éxito
+    
     res.json({
       mensaje: '¡Login exitoso!',
       token: token,
       usuario: {
-        id: usuario.id,
+        id: usuario.id_usuario, // Lo mandamos al front como "id"
         username: usuario.username,
         email: usuario.email
       }
@@ -141,23 +137,28 @@ app.post('/api/usuarios/login', async (req, res) => {
   }
 });
 
-//-----Dashboard------
+
+// ==========================================
+// ----- DASHBOARD -----
+// ==========================================
+
 // GET me con token
 app.get('/api/me', verificarToken, async (req, res) => {
   try {
-    const usuarioId = req.usuario.id; 
+    const usuarioId = req.usuario.id; // Viene del token
 
+    // NUEVO: Todas las uniones (JOINs) usan los nuevos nombres de columnas
     const query = `
       SELECT 
         u.username, 
         u.email, 
         COALESCE(array_agg(p.nombre) FILTER (WHERE p.nombre IS NOT NULL), '{}') as permisos
       FROM usuarios u
-      LEFT JOIN usuario_rol ur ON u.id = ur.usuario_id
-      LEFT JOIN roles r ON ur.rol_id = r.id
-      LEFT JOIN rol_permiso rp ON r.id = rp.rol_id
-      LEFT JOIN permisos p ON rp.permiso_id = p.id
-      WHERE u.id = $1
+      LEFT JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario
+      LEFT JOIN roles r ON ur.id_rol = r.id_rol
+      LEFT JOIN rol_permiso rp ON r.id_rol = rp.id_rol
+      LEFT JOIN permisos p ON rp.id_permiso = p.id_permiso
+      WHERE u.id_usuario = $1
       GROUP BY u.username, u.email;
     `;
 
@@ -177,54 +178,65 @@ app.get('/api/me', verificarToken, async (req, res) => {
   }
 });
 
-//----------Admin---------
-//Get usuarios
-app.get('/api/get/usuarios-rol',verificarToken, async (req,res)=>{
+
+// ==========================================
+// ---------- ADMIN ---------
+// ==========================================
+
+// Get usuarios
+app.get('/api/get/usuarios-rol', verificarToken, async (req,res)=>{
   try{
+      // NUEVO: Usamos AS para no romper el frontend
       const query = `
-      SELECT usuarios.id, usuarios.username, usuarios.email, usuario_rol.rol_id
-      FROM usuarios
-      LEFT JOIN usuario_rol ON usuarios.id = usuario_rol.usuario_id
-      ORDER BY usuarios.id ASC;
-        
+      SELECT 
+        u.id_usuario AS id, 
+        u.username, 
+        u.email, 
+        ur.id_rol AS rol_id
+      FROM usuarios u
+      LEFT JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario
+      ORDER BY u.id_usuario ASC;
       `;
       const result = await pool.query(query);
+      
       if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'No existen usuarios o roles en el sistema' });
+        return res.status(404).json({ error: 'No existen usuarios o roles en el sistema' });
       }
       res.json(result.rows);
   }catch(err){
       console.error('Error en GET /api/usuarios:', err.message);
       res.status(500).json({ error: 'Error interno del servidor' });
   }
-
 });
 
+// Get roles
 app.get('/api/get/roles', verificarToken, async (req,res) => {
   try {
-
+    // NUEVO: id_rol AS id
     const query = `
-      SELECT id, nombre
+      SELECT id_rol AS id, nombre
       FROM roles
     `;
-
     const result = await pool.query(query);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'No hay roles en el catálogo de roles' });
     }
-
     res.json(result.rows);
-
   } catch (err) {
     console.error('Error en /api/get/roles:', err.message);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
+// Get rol-permiso
 app.get('/api/get/rol-permiso', verificarToken, async (req, res) => {
   try {
-    const query = `SELECT rol_id, permiso_id FROM rol_permiso;`;
+    // NUEVO: id_rol AS rol_id, id_permiso AS permiso_id
+    const query = `
+      SELECT id_rol AS rol_id, id_permiso AS permiso_id 
+      FROM rol_permiso;
+    `;
     const result = await pool.query(query);
     res.json(result.rows);
   } catch (err) {
@@ -233,10 +245,14 @@ app.get('/api/get/rol-permiso', verificarToken, async (req, res) => {
   }
 });
 
-// GET: Obtener TODOS los permisos disponibles (Para los checkboxes)
+// GET: Obtener TODOS los permisos disponibles
 app.get('/api/get/permisos', verificarToken, async (req, res) => {
   try {
-    const query = `SELECT id, nombre FROM permisos;`;
+    // NUEVO: id_permiso AS id
+    const query = `
+      SELECT id_permiso AS id, nombre 
+      FROM permisos;
+    `;
     const result = await pool.query(query);
     res.json(result.rows);
   } catch (err) {
@@ -244,4 +260,3 @@ app.get('/api/get/permisos', verificarToken, async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
-
