@@ -59,12 +59,43 @@ export default function AdminPage() {
     setEditingUserId(null)
     setTempRoleId("")
   }
-  const handleSaveClick = (usuarioId: number) => {
-    console.log(`Guardando en BD: Usuario ${usuarioId} ahora tiene el rol ${tempRoleId}`)
-    setUsuarios(usuarios.map(user => 
-      user.id === usuarioId ? { ...user, rol_id: tempRoleId ? Number(tempRoleId) : null } : user
-    ))
-    setEditingUserId(null)
+  
+  // Guardar los cambios de Rol en el usuario
+  const handleSaveClick = async (usuarioId: number) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      // 1. Preparamos los datos a enviar
+      const payload = {
+        usuario_id: usuarioId,
+        rol_id: tempRoleId ? Number(tempRoleId) : null
+      };
+
+      // 2. Hacemos la petición PUT al backend
+      const response = await fetch("http://localhost:4000/api/update/usuario-rol", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        // 3. Si la BD se actualizó bien, actualizamos la tabla visualmente
+        setUsuarios(usuarios.map(user => 
+          user.id === usuarioId ? { ...user, rol_id: payload.rol_id } : user
+        ));
+        setEditingUserId(null); // Salimos del modo edición
+        console.log(`¡Éxito! Usuario ${usuarioId} actualizado al rol ${payload.rol_id}`);
+      } else {
+        console.error("Error del servidor al guardar el rol");
+      }
+
+    } catch (error) {
+      console.error("Error de conexión al guardar:", error);
+    }
   }
 
   const obtenerNombreRol = (rolId: number | null) => {
@@ -76,20 +107,47 @@ export default function AdminPage() {
   // ==========================================
   // NUEVO: Función para prender/apagar un permiso en el Frontend
   // ==========================================
-  const handleTogglePermiso = (rolId: number, permisoId: number) => {
-    // Revisamos si el rol ya tiene ese permiso
+  // Prender o apagar un permiso en un rol
+  const handleTogglePermiso = async (rolId: number, permisoId: number) => {
+    // 1. Verificamos el estado actual para saber si vamos a prender (true) o apagar (false)
     const tienePermiso = rolPermisos.some(rp => rp.rol_id === rolId && rp.permiso_id === permisoId);
-    
+    const asignar = !tienePermiso; // Invertimos el valor actual
+
+    // 2. Actualizamos la Interfaz visual inmediatamente para que se sienta rápido (Optimistic UI)
     if (tienePermiso) {
-      // Si lo tiene, lo quitamos (Filtramos para borrarlo)
       setRolPermisos(rolPermisos.filter(rp => !(rp.rol_id === rolId && rp.permiso_id === permisoId)));
     } else {
-      // Si no lo tiene, lo agregamos
       setRolPermisos([...rolPermisos, { rol_id: rolId, permiso_id: permisoId }]);
     }
     
-    // TODO: Hacer un fetch al backend para guardar este cambio en la base de datos real
-    console.log(`Cambiando permiso ${permisoId} para el rol ${rolId}`);
+    // 3. Hacemos la petición silenciosa al backend para guardarlo permanentemente
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch("http://localhost:4000/api/update/rol-permiso", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          rol_id: rolId,
+          permiso_id: permisoId,
+          asignar: asignar // Mandamos true (INSERT) o false (DELETE)
+        })
+      });
+
+      if (!response.ok) {
+        // Opcional: Si el servidor falla, podríamos revertir el checkbox aquí
+        console.error("Error al guardar el permiso en la base de datos");
+      } else {
+        console.log(`Permiso ${permisoId} ${asignar ? 'agregado' : 'removido'} del rol ${rolId}`);
+      }
+
+    } catch (error) {
+      console.error("Error de conexión al modificar el permiso:", error);
+    }
   };
 
   return (

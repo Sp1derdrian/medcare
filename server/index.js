@@ -49,6 +49,14 @@ const verificarToken = (req, res, next) => {
   }
 };
 
+// ==========================================
+// Conectar los nuevos archivos de rutas IMPORTANTE AGREGAR LAS RUTAS
+// ==========================================
+app.use('/api/pacientes', require('./routes/pacientes'));
+// EJEMPLOS
+// app.use('/api/doctores', require('./routes/doctores')); // Cuando César lo haga
+// app.use('/api/citas', require('./routes/citas')); // Cuando Diego lo haga
+
 // Iniciar el servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
@@ -114,7 +122,7 @@ app.post('/api/usuarios/login', async (req, res) => {
       return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
     }
     
-    // NUEVO: Usamos usuario.id_usuario porque en el SELECT * viene con ese nombre
+    
     const token = jwt.sign(
       { id: usuario.id_usuario }, 
       process.env.JWT_SECRET, 
@@ -186,7 +194,6 @@ app.get('/api/me', verificarToken, async (req, res) => {
 // Get usuarios
 app.get('/api/get/usuarios-rol', verificarToken, async (req,res)=>{
   try{
-      // NUEVO: Usamos AS para no romper el frontend
       const query = `
       SELECT 
         u.id_usuario AS id, 
@@ -248,7 +255,7 @@ app.get('/api/get/rol-permiso', verificarToken, async (req, res) => {
 // GET: Obtener TODOS los permisos disponibles
 app.get('/api/get/permisos', verificarToken, async (req, res) => {
   try {
-    // NUEVO: id_permiso AS id
+    
     const query = `
       SELECT id_permiso AS id, nombre 
       FROM permisos;
@@ -260,3 +267,80 @@ app.get('/api/get/permisos', verificarToken, async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
+
+// ==========================================
+// ----- ENDPOINTS DE ACTUALIZACIÓN (PUT) ---
+// ==========================================
+
+// PUT: Actualizar el rol de un usuario
+app.put('/api/update/usuario-rol', verificarToken, async (req, res) => {
+  
+  const client = await pool.connect(); 
+  
+  try {
+    const { usuario_id, rol_id } = req.body;
+
+    await client.query('BEGIN'); // Iniciamos la transacción
+
+    // 1. Siempre limpiamos el rol anterior del usuario en la tabla intermedia
+    await client.query('DELETE FROM usuario_rol WHERE id_usuario = $1', [usuario_id]);
+
+    // 2. Si el frontend nos mandó un rol válido (y no un valor nulo), lo insertamos
+    if (rol_id) {
+      await client.query(
+        'INSERT INTO usuario_rol (id_usuario, id_rol) VALUES ($1, $2)',
+        [usuario_id, rol_id]
+      );
+    }
+
+    await client.query('COMMIT'); // Guardamos los cambios
+    res.json({ mensaje: 'Rol de usuario actualizado exitosamente' });
+
+  } catch (err) {
+    await client.query('ROLLBACK'); // Si algo falla, deshacemos todo por seguridad
+    console.error('Error en PUT /api/update/usuario-rol:', err.message);
+    res.status(500).json({ error: 'Error al actualizar el rol del usuario' });
+  } finally {
+    client.release(); // Liberamos la conexión a la base de datos
+  }
+});
+
+// PUT: Asignar o quitar un permiso a un rol específico (Toggle)
+app.put('/api/update/rol-permiso', verificarToken, async (req, res) => {
+  try {
+    const { rol_id, permiso_id, asignar } = req.body;
+    
+    if (asignar) {
+      // Queremos PRENDER el checkbox (INSERT)
+      // Usamos ON CONFLICT DO NOTHING gracias a que pusiste la regla UNIQUE en tu table.sql
+      // Esto evita que la BD explote si por accidente intentamos dar un permiso que ya tenía.
+      const query = `
+        INSERT INTO rol_permiso (id_rol, id_permiso) 
+        VALUES ($1, $2) 
+        ON CONFLICT ("id_rol", "id_permiso") DO NOTHING;
+      `;
+      await pool.query(query, [rol_id, permiso_id]);
+      
+    } else {
+      // Queremos APAGAR el checkbox (DELETE)
+      const query = `
+        DELETE FROM rol_permiso 
+        WHERE id_rol = $1 AND id_permiso = $2;
+      `;
+      await pool.query(query, [rol_id, permiso_id]);
+    }
+
+    res.json({ mensaje: `Permiso ${asignar ? 'asignado' : 'removido'} exitosamente` });
+
+  } catch (err) {
+    console.error('Error en PUT /api/update/rol-permiso:', err.message);
+    res.status(500).json({ error: 'Error al actualizar los permisos del rol' });
+  }
+});
+
+
+// ==========================================
+// Exportar BD y Token para los compañeros en carpeta routes
+// ==========================================
+module.exports = { pool, verificarToken };
+

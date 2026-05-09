@@ -12,15 +12,17 @@ import {
   ChevronLeft,
   Heart,
   GemIcon,
+  HospitalIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Patients", href: "/dashboard/patients", icon: Users },
-  { label: "Doctors", href: "/dashboard/doctors", icon: Stethoscope },
-  { label: "Appointments", href: "/dashboard/appointments", icon: CalendarDays },
-  { label: "Treatments", href: "/dashboard/treatments", icon: Pill },
+  { label: "Patients", href: "/patients", icon: Users },
+  { label: "Doctors", href: "/doctors", icon: Stethoscope },
+  { label: "Appointments", href: "/appointments", icon: CalendarDays },
+  { label: "Clinical Records", href: "/clinical", icon: Pill },
+  { label: "Hospitalization", href: "/hospitalization", icon: HospitalIcon },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
   { label: "Admin", href: "/admin", icon: GemIcon}
 ]

@@ -77,7 +77,7 @@ CREATE TABLE "pacientes" (
   "id_estado_civil" integer,
   "id_grupo_sanguineo" integer,
   "id_seguro" integer,
-  "telefono" varchar(10),
+  "telefono" varchar(12), --lada
   "email" varchar(100),
   "direccion" text
 );
@@ -86,7 +86,7 @@ CREATE TABLE "doctores" (
   "id_doctor" SERIAL PRIMARY KEY,
   "nombre" varchar(100) NOT NULL,
   "apellido" varchar(100) NOT NULL,
-  "cedula_profesional" varchar(30) UNIQUE NOT NULL,
+  "cedula_profesional" varchar(30) UNIQUE NOT NULL, --cambiar
   "telefono" varchar(10)
 );
 
