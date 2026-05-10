@@ -48,7 +48,10 @@ const verificarToken = (req, res, next) => {
     return res.status(401).json({ error: 'Token inválido o expirado.' });
   }
 };
-
+// ==========================================
+// Exportar BD y Token para los compañeros en carpeta routes
+// ==========================================
+module.exports = { pool, verificarToken };
 // ==========================================
 // Conectar los nuevos archivos de rutas IMPORTANTE AGREGAR LAS RUTAS
 // ==========================================
@@ -339,8 +342,5 @@ app.put('/api/update/rol-permiso', verificarToken, async (req, res) => {
 });
 
 
-// ==========================================
-// Exportar BD y Token para los compañeros en carpeta routes
-// ==========================================
-module.exports = { pool, verificarToken };
+
 
