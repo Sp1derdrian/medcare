@@ -50,9 +50,16 @@ const verificarToken = (req, res, next) => {
 };
 
 // ==========================================
+// Exportar BD y Token para los compañeros en carpeta routes
+// ==========================================
+module.exports = { pool, verificarToken };
+
+
+// ==========================================
 // Conectar los nuevos archivos de rutas IMPORTANTE AGREGAR LAS RUTAS
 // ==========================================
 app.use('/api/pacientes', require('./routes/pacientes'));
+app.use('/api/catalogos', require('./routes/catalogos'));
 // EJEMPLOS
 // app.use('/api/doctores', require('./routes/doctores')); // Cuando César lo haga
 // app.use('/api/citas', require('./routes/citas')); // Cuando Diego lo haga
@@ -339,8 +346,5 @@ app.put('/api/update/rol-permiso', verificarToken, async (req, res) => {
 });
 
 
-// ==========================================
-// Exportar BD y Token para los compañeros en carpeta routes
-// ==========================================
-module.exports = { pool, verificarToken };
+
 
