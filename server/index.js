@@ -3,6 +3,7 @@ const cors = require('cors');
 const bcrypt = require('bcrypt'); // hash y salt
 const jwt = require('jsonwebtoken'); // tokens
 const { Pool } = require('pg');
+const PERMISOS = require('./utils/permisos');
 require('dotenv').config();
 
 const app = express();
@@ -48,10 +49,56 @@ const verificarToken = (req, res, next) => {
     return res.status(401).json({ error: 'Token inválido o expirado.' });
   }
 };
+
+// Función helper que valida permisos
+
+const requerirPermiso = (permisosExigidos) => {
+
+  const permisosPermitidos = Array.isArray(permisosExigidos) 
+    ? permisosExigidos 
+    : [permisosExigidos];
+
+  return async (req, res, next) => {
+    try {
+      const usuarioId = req.usuario.id;
+
+      // TODOS los permisos que tiene este usuario
+      const query = `
+        SELECT p.nombre 
+        FROM usuarios u
+        JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario
+        JOIN roles r ON ur.id_rol = r.id_rol
+        JOIN rol_permiso rp ON r.id_rol = rp.id_rol
+        JOIN permisos p ON rp.id_permiso = p.id_permiso
+        WHERE u.id_usuario = $1;
+      `;
+      const result = await pool.query(query, [usuarioId]);
+      
+      // Resultado a arreglo
+      const permisosDelUsuario = result.rows.map(row => row.nombre);
+
+      // Se verifica si se TIENE AL MENOS UNO de los permisos exigidos
+      const tienePermiso = permisosPermitidos.some(permiso => permisosDelUsuario.includes(permiso));
+
+      if (!tienePermiso) {
+        return res.status(403).json({ 
+          error: `Acceso denegado. Requieres alguno de estos permisos: ${permisosPermitidos.join(', ')}` 
+        });
+      }
+
+      next(); // Proceder con endpoint
+    } catch (err) {
+      console.error('Error en requerirPermiso:', err.message);
+      res.status(500).json({ error: 'Error verificando permisos' });
+    }
+  };
+};
+
+
 // ==========================================
-// Exportar BD y Token para los compañeros en carpeta routes
+// Exportar BD y Token para los compañeros en carpeta routes así como función helper de permisos
 // ==========================================
-module.exports = { pool, verificarToken };
+module.exports = { pool, verificarToken, requerirPermiso };
 // ==========================================
 // Conectar los nuevos archivos de rutas IMPORTANTE AGREGAR LAS RUTAS
 // ==========================================
@@ -197,7 +244,7 @@ app.get('/api/me', verificarToken, async (req, res) => {
 // ==========================================
 
 // Get usuarios
-app.get('/api/get/usuarios-rol', verificarToken, async (req,res)=>{
+app.get('/api/get/usuarios-rol', verificarToken, requerirPermiso([PERMISOS.ADMIN]), async (req,res)=>{
   try{
       const query = `
       SELECT 
@@ -278,7 +325,7 @@ app.get('/api/get/permisos', verificarToken, async (req, res) => {
 // ==========================================
 
 // PUT: Actualizar el rol de un usuario
-app.put('/api/update/usuario-rol', verificarToken, async (req, res) => {
+app.put('/api/update/usuario-rol', verificarToken, requerirPermiso([PERMISOS.ADMIN]), async (req, res) => {
   
   const client = await pool.connect(); 
   
@@ -311,7 +358,7 @@ app.put('/api/update/usuario-rol', verificarToken, async (req, res) => {
 });
 
 // PUT: Asignar o quitar un permiso a un rol específico (Toggle)
-app.put('/api/update/rol-permiso', verificarToken, async (req, res) => {
+app.put('/api/update/rol-permiso', verificarToken, requerirPermiso([PERMISOS.ADMIN]), async (req, res) => {
   try {
     const { rol_id, permiso_id, asignar } = req.body;
     

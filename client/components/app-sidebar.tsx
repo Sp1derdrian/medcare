@@ -1,5 +1,5 @@
 "use client"
-
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -17,14 +17,14 @@ import {
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Patients", href: "/patients", icon: Users },
-  { label: "Doctors", href: "/doctors", icon: Stethoscope },
-  { label: "Appointments", href: "/appointments", icon: CalendarDays },
-  { label: "Clinical Records", href: "/clinical", icon: Pill },
-  { label: "Hospitalization", href: "/hospitalization", icon: HospitalIcon },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
-  { label: "Admin", href: "/admin", icon: GemIcon}
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permiso: null },
+  { label: "Patients", href: "/patients", icon: Users, permiso: "pacientes" },
+  { label: "Doctors", href: "/doctors", icon: Stethoscope, permiso: "doctores" },
+  { label: "Appointments", href: "/appointments", icon: CalendarDays, permiso: "citas" },
+  { label: "Clinical Records", href: "/clinical", icon: Pill, permiso: "clinica" },
+  { label: "Hospitalization", href: "/hospitalization", icon: HospitalIcon, permiso: "hospitalizacion" },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings, permiso: "ajustes" },
+  { label: "Admin", href: "/admin", icon: GemIcon, permiso: "administrador"}
 ]
 
 interface AppSidebarProps {
@@ -34,6 +34,34 @@ interface AppSidebarProps {
 
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const pathname = usePathname()
+  const [misPermisos, setMisPermisos] = useState<string[]>([])
+  
+  useEffect(() => {
+    const fetchPermisos = async () => {
+      const token = localStorage.getItem("token")
+      if (!token) return
+
+      try {
+        const res = await fetch("http://localhost:4000/api/me", {
+          headers: { "Authorization": `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          // Guardamos el arreglo de strings (ej: ['pacientes', 'citas'])
+          setMisPermisos(data.perfil?.permisos || [])
+        }
+      } catch (error) {
+        console.error("Error cargando permisos en la sidebar:", error)
+      }
+    }
+
+    fetchPermisos()
+  }, [])
+
+  // Filtramos los items antes de dibujarlos
+  const itemsPermitidos = navItems.filter(item => 
+    !item.permiso || misPermisos.includes(item.permiso)
+  )
 
   return (
     <aside
@@ -57,7 +85,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4">
         <ul className="flex flex-col gap-1">
-          {navItems.map((item) => {
+          {itemsPermitidos.map((item) => {
             const isActive = pathname === item.href
             return (
               <li key={item.href}>
