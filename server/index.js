@@ -52,10 +52,6 @@ const verificarToken = (req, res, next) => {
 // Exportar BD y Token para los compañeros en carpeta routes
 // ==========================================
 module.exports = { pool, verificarToken };
-// ==========================================
-// Exportar BD y Token para los compañeros en carpeta routes
-// ==========================================
-module.exports = { pool, verificarToken };
 
 
 // ==========================================
@@ -63,7 +59,6 @@ module.exports = { pool, verificarToken };
 // ==========================================
 app.use('/api/catalogos', require('./routes/catalogo_procesos'));
 app.use('/api/pacientes', require('./routes/pacientes'));
-app.use('/api/catalogos', require('./routes/catalogos'));
 // EJEMPLOS
 // app.use('/api/doctores', require('./routes/doctores')); // Cuando César lo haga
 // app.use('/api/citas', require('./routes/citas')); // Cuando Diego lo haga
