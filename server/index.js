@@ -52,8 +52,6 @@ const verificarToken = (req, res, next) => {
 // Exportar BD y Token para los compañeros en carpeta routes
 // ==========================================
 module.exports = { pool, verificarToken };
-
-
 // ==========================================
 // Conectar los nuevos archivos de rutas IMPORTANTE AGREGAR LAS RUTAS
 // ==========================================
