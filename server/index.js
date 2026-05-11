@@ -55,6 +55,7 @@ module.exports = { pool, verificarToken };
 // ==========================================
 // Conectar los nuevos archivos de rutas IMPORTANTE AGREGAR LAS RUTAS
 // ==========================================
+app.use('/api/catalogos', require('./routes/catalogo_procesos'));
 app.use('/api/pacientes', require('./routes/pacientes'));
 // EJEMPLOS
 // app.use('/api/doctores', require('./routes/doctores')); // Cuando César lo haga
