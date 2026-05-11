@@ -57,6 +57,7 @@ module.exports = { pool, verificarToken };
 // ==========================================
 app.use('/api/catalogos', require('./routes/catalogo_procesos'));
 app.use('/api/pacientes', require('./routes/pacientes'));
+app.use('/api/doctores', require('./routes/doctores'));
 // EJEMPLOS
 // app.use('/api/doctores', require('./routes/doctores')); // Cuando César lo haga
 // app.use('/api/citas', require('./routes/citas')); // Cuando Diego lo haga
