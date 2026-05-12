@@ -134,7 +134,7 @@ const stats = [
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          Welcome back, Dr. Smith. Here is an overview of today.
+          Welcome back. Here is an overview of today.
         </p>
       </div>
 
@@ -195,7 +195,16 @@ const stats = [
                     <tr key={appt.id_cita} className="border-b border-border last:border-0">
                       <td className="py-3 font-medium text-foreground">{appt.paciente_nombre}</td>
                       <td className="py-3 text-muted-foreground">{appt.doctor_nombre} {appt.doctor_apellido}</td>
-                      <td className="py-3 text-muted-foreground">{appt.fecha}</td>
+                      <td className="py-3 text-muted-foreground">
+                        {new Date(appt.fecha).toLocaleString('es-MX', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </td>
                       <td className="py-3">
                         <span
                           className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyles[appt.estado]}`}
