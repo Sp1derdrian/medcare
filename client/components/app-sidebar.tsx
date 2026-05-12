@@ -15,16 +15,17 @@ import {
   HospitalIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {PERMISOS} from "@/lib/utils"
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permiso: null },
-  { label: "Patients", href: "/patients", icon: Users, permiso: "pacientes" },
-  { label: "Doctors", href: "/doctors", icon: Stethoscope, permiso: "doctores" },
-  { label: "Appointments", href: "/appointments", icon: CalendarDays, permiso: "citas" },
-  { label: "Clinical Records", href: "/clinical", icon: Pill, permiso: "clinica" },
-  { label: "Hospitalization", href: "/hospitalization", icon: HospitalIcon, permiso: "hospitalizacion" },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings, permiso: "ajustes" },
-  { label: "Admin", href: "/admin", icon: GemIcon, permiso: "administrador"}
+  { label: "Patients", href: "/patients", icon: Users, permiso: PERMISOS.PATIENT },
+  { label: "Doctors", href: "/doctors", icon: Stethoscope, permiso: PERMISOS.DOCTOR },
+  { label: "Appointments", href: "/appointments", icon: CalendarDays, permiso: PERMISOS.APPOINTMENTS },
+  { label: "Clinical Records", href: "/clinical", icon: Pill, permiso: PERMISOS.CLINIC },
+  { label: "Hospitalization", href: "/hospitalization", icon: HospitalIcon, permiso: PERMISOS.HOSPITAL },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings, permiso: PERMISOS.SETTINGS },
+  { label: "Admin", href: "/admin", icon: GemIcon, permiso: PERMISOS.ADMIN }
 ]
 
 interface AppSidebarProps {

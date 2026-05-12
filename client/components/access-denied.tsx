@@ -15,14 +15,7 @@ export function AccessDenied() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval)
-          router.push("/dashboard")
-          return 0
-        }
-        return prev - 1
-      })
+      setSecondsLeft((prev) => prev - 1)
       setProgress((prev) => {
         const increment = 100 / REDIRECT_SECONDS
         return Math.min(prev + increment, 100)
@@ -30,7 +23,14 @@ export function AccessDenied() {
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [router])
+  }, [])
+
+  useEffect(() => {
+    if (secondsLeft <= 0) {
+      router.push("/dashboard")
+    }
+  }, [secondsLeft, router])
+
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center p-6">

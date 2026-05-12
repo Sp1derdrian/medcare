@@ -144,4 +144,13 @@ router.put('/actualizar/:id', requerirPermiso([PERMISOS.PATIENT, PERMISOS.ADMIN]
   }
 });
 
+router.get('/get/number', async (req,res) =>{
+  try {
+    const result = await pool.query('SELECT COUNT(id_paciente) as total_pacientes FROM pacientes');
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Error en conteo de pacientes' });
+  }
+});
+
 module.exports = router;
