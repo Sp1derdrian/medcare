@@ -1,3 +1,4 @@
+"use client"
 import {
   Users,
   Stethoscope,
@@ -9,11 +10,90 @@ import {
   Clock,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react"
 
+
+
+const recentAppointments = [
+  { patient: "Alice Johnson", doctor: "Dr. Robert Lee", time: "09:00 AM", status: "Completed" },
+  { patient: "Mark Williams", doctor: "Dr. Jane Smith", time: "10:30 AM", status: "In Progress" },
+  { patient: "Susan Brown", doctor: "Dr. Emily Chen", time: "11:00 AM", status: "Waiting" },
+  { patient: "James Taylor", doctor: "Dr. David Kim", time: "01:00 PM", status: "Scheduled" },
+  { patient: "Patricia Moore", doctor: "Dr. Sarah Wilson", time: "02:30 PM", status: "Scheduled" },
+]
+
+const statusStyles: Record<string, string> = {
+  Completada: "bg-green-100 text-green-700",
+  Confirmada: "bg-blue-100 text-blue-700",
+  Pendiente: "bg-yellow-100 text-yellow-700",
+  Cancelada: "bg-red-100 text-red-700",
+}
+
+const departments = [
+  { name: "Cardiology", patients: 185, doctors: 12, occupancy: 85 },
+  { name: "Neurology", patients: 142, doctors: 8, occupancy: 72 },
+  { name: "Orthopedics", patients: 198, doctors: 15, occupancy: 91 },
+  { name: "Pediatrics", patients: 164, doctors: 10, occupancy: 68 },
+]
+
+interface Appointment {
+  id_cita: number
+  id_paciente: number
+  id_doctor: number
+  fecha: string
+  estado: string
+  paciente_nombre: string
+  doctor_nombre: string
+  doctor_apellido: string
+}
+
+export function DashboardContent() {
+const [numPatients, setNumPatients] = useState<{ total_pacientes: number } | null>(null);
+const [numDoctors, setNumDoctors] = useState<{ total_doctores: number } | null>(null);
+const [appointments, setAppointments] = useState<Appointment[]>([])
+
+//carga de datos de dashboard con endpoints
+const cargarDatos = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        
+        const config = {
+          headers: { "Authorization": `Bearer ${token}` }
+        };
+
+        const resNumPacientes = await fetch("http://localhost:4000/api/pacientes/get/number", config);
+        if (resNumPacientes.ok) {
+          const data = await resNumPacientes.json();
+          setNumPatients(data);
+        }
+
+        const resNumDoctors= await fetch("http://localhost:4000/api/doctores/get/number", config);
+        if (resNumDoctors.ok) {
+          const data = await resNumDoctors.json();
+          setNumDoctors(data);
+        }
+
+        const resAppointments= await fetch("http://localhost:4000/api/citas/get/cincoRecientes", config);
+        if (resAppointments.ok) {
+          const data = await resAppointments.json();
+          setAppointments(data);
+        }
+
+      } catch (error) {
+        console.error("Error cargando datos:", error);
+      }
+    };
+
+  useEffect(() => {
+    
+    cargarDatos();
+    
+  },[])
 const stats = [
   {
     label: "Total Patients",
-    value: "1,284",
+    value: numPatients ? numPatients.total_pacientes : 0,
     change: "+12.5%",
     trend: "up" as const,
     icon: Users,
@@ -22,7 +102,7 @@ const stats = [
   },
   {
     label: "Active Doctors",
-    value: "64",
+    value: numDoctors ? numDoctors.total_doctores : 0,
     change: "+3.2%",
     trend: "up" as const,
     icon: Stethoscope,
@@ -47,31 +127,7 @@ const stats = [
     color: "text-chart-5",
     bgColor: "bg-chart-5/10",
   },
-]
-
-const recentAppointments = [
-  { patient: "Alice Johnson", doctor: "Dr. Robert Lee", time: "09:00 AM", status: "Completed" },
-  { patient: "Mark Williams", doctor: "Dr. Jane Smith", time: "10:30 AM", status: "In Progress" },
-  { patient: "Susan Brown", doctor: "Dr. Emily Chen", time: "11:00 AM", status: "Waiting" },
-  { patient: "James Taylor", doctor: "Dr. David Kim", time: "01:00 PM", status: "Scheduled" },
-  { patient: "Patricia Moore", doctor: "Dr. Sarah Wilson", time: "02:30 PM", status: "Scheduled" },
-]
-
-const statusStyles: Record<string, string> = {
-  Completed: "bg-accent/10 text-accent",
-  "In Progress": "bg-primary/10 text-primary",
-  Waiting: "bg-secondary/10 text-secondary",
-  Scheduled: "bg-muted text-muted-foreground",
-}
-
-const departments = [
-  { name: "Cardiology", patients: 185, doctors: 12, occupancy: 85 },
-  { name: "Neurology", patients: 142, doctors: 8, occupancy: 72 },
-  { name: "Orthopedics", patients: 198, doctors: 15, occupancy: 91 },
-  { name: "Pediatrics", patients: 164, doctors: 10, occupancy: 68 },
-]
-
-export function DashboardContent() {
+  ]
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
@@ -135,16 +191,16 @@ export function DashboardContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentAppointments.map((appt, i) => (
-                    <tr key={i} className="border-b border-border last:border-0">
-                      <td className="py-3 font-medium text-foreground">{appt.patient}</td>
-                      <td className="py-3 text-muted-foreground">{appt.doctor}</td>
-                      <td className="py-3 text-muted-foreground">{appt.time}</td>
+                  {appointments.map((appt) => (
+                    <tr key={appt.id_cita} className="border-b border-border last:border-0">
+                      <td className="py-3 font-medium text-foreground">{appt.paciente_nombre}</td>
+                      <td className="py-3 text-muted-foreground">{appt.doctor_nombre} {appt.doctor_apellido}</td>
+                      <td className="py-3 text-muted-foreground">{appt.fecha}</td>
                       <td className="py-3">
                         <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyles[appt.status]}`}
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyles[appt.estado]}`}
                         >
-                          {appt.status}
+                          {appt.estado}
                         </span>
                       </td>
                     </tr>
