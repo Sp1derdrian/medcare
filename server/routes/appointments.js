@@ -15,7 +15,7 @@ router.use(verificarToken);
 router.get('/get/cincoRecientes' ,async (req, res) => {
   try {
     const query = `
-    select c.id_cita, c.id_paciente, c.id_doctor, c.fecha, c.estado, p.nombre as paciente_nombre, d.nombre as doctor_nombre, d.apellido as doctor_apellido
+    select c.id_cita, c.id_paciente, c.id_doctor, c.fecha, c.estado, p.nombre as paciente_nombre, p.apellido as paciente_apellido, d.nombre as doctor_nombre, d.apellido as doctor_apellido
         from citas c
         left join pacientes p on p.id_paciente=c.id_paciente
         left join doctores d on d.id_doctor=c.id_doctor

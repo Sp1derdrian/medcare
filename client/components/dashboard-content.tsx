@@ -43,6 +43,7 @@ interface Appointment {
   fecha: string
   estado: string
   paciente_nombre: string
+  paciente_apellido:string
   doctor_nombre: string
   doctor_apellido: string
 }
@@ -193,7 +194,7 @@ const stats = [
                 <tbody>
                   {appointments.map((appt) => (
                     <tr key={appt.id_cita} className="border-b border-border last:border-0">
-                      <td className="py-3 font-medium text-foreground">{appt.paciente_nombre}</td>
+                      <td className="py-3 font-medium text-foreground">{appt.paciente_nombre} {appt.paciente_apellido}</td>
                       <td className="py-3 text-muted-foreground">{appt.doctor_nombre} {appt.doctor_apellido}</td>
                       <td className="py-3 text-muted-foreground">
                         {new Date(appt.fecha).toLocaleString('es-MX', {
