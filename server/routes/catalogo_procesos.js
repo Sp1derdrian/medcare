@@ -79,4 +79,27 @@ router.get('/tipos-cita', verificarToken, async (req, res) => {
   }
 });
 
+// GET /api/catalogos/bitacora (Con nombres de acciones)
+router.get('/bitacora', verificarToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        b.id_bitacora,
+        u.username AS usuario,
+        a.descripcion AS accion, 
+        b.fecha
+      FROM bitacora b
+      LEFT JOIN usuarios u ON b.id_usuario = u.id_usuario
+      LEFT JOIN acciones a ON b.id_accion = a.id_accion
+      ORDER BY b.fecha DESC
+      LIMIT 8;
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error en GET /api/catalogos/bitacora:', err.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 module.exports = router;
