@@ -13,6 +13,7 @@ router.get('/get/todos', verificarToken, async (req, res) => {
   try {
     const query = `
     SELECT p.id_paciente, p.nombre, p.apellido, p.telefono, p.email, p.id_sexo, p.id_estado_civil, p.id_grupo_sanguineo, p.fecha_nacimiento,
+      p.id_seguro,
       s.descripcion as sexo_nombre, 
       g.descripcion as sangre_nombre, 
       e.descripcion as ecivil_nombre
