@@ -59,6 +59,7 @@ app.use('/api/catalogos', require('./routes/catalogo_procesos'));
 app.use('/api/pacientes', require('./routes/pacientes'));
 app.use('/api/doctores', require('./routes/doctores'));
 app.use('/api/hospitalizaciones', require('./routes/hospitalizaciones'));
+app.use('/api/salas', require('./routes/salas'));
 // EJEMPLOS
 // app.use('/api/doctores', require('./routes/doctores')); // Cuando César lo haga
 // app.use('/api/citas', require('./routes/citas')); // Cuando Diego lo haga
