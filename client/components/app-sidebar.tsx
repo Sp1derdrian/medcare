@@ -8,6 +8,7 @@ import {
   Stethoscope,
   CalendarDays,
   Pill,
+  ClipboardList,
   Settings,
   ChevronLeft,
   Heart,
@@ -17,14 +18,15 @@ import {
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Patients", href: "/patients", icon: Users },
-  { label: "Doctors", href: "/doctors", icon: Stethoscope },
-  { label: "Appointments", href: "/appointments", icon: CalendarDays },
-  { label: "Clinical Records", href: "/clinical", icon: Pill },
-  { label: "Hospitalization", href: "/hospitalization", icon: HospitalIcon },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
-  { label: "Admin", href: "/admin", icon: GemIcon}
+  { label: "Dashboard",        href: "/dashboard",          icon: LayoutDashboard },
+  { label: "Patients",         href: "/patients",           icon: Users },
+  { label: "Doctors",          href: "/doctors",            icon: Stethoscope },
+  { label: "Appointments",     href: "/appointments",       icon: CalendarDays },
+  { label: "Clinical Records", href: "/clinical",           icon: Pill },
+  { label: "Recetas",           href: "/prescriptions",      icon: ClipboardList },
+  { label: "Hospitalization",  href: "/hospitalization",    icon: HospitalIcon },
+  { label: "Settings",         href: "/dashboard/settings", icon: Settings },
+  { label: "Admin",            href: "/admin",              icon: GemIcon },
 ]
 
 interface AppSidebarProps {
