@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Stethoscope,
   Plus,
@@ -10,6 +10,7 @@ import {
   Phone,
   BadgeCheck,
   ClipboardList,
+  Filter,
 } from "lucide-react"
 
 type Especialidad = {
@@ -48,8 +49,12 @@ export default function DoctorsPage() {
   const [doctores, setDoctores] = useState<Doctor[]>([])
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([])
   const [form, setForm] = useState<DoctorForm>(formInicial)
+
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [doctorEditandoId, setDoctorEditandoId] = useState<number | null>(null)
+
+  const [filtroEspecialidad, setFiltroEspecialidad] = useState("")
+
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState("")
@@ -71,14 +76,15 @@ export default function DoctorsPage() {
       })
 
       if (!response.ok) {
-        throw new Error("No se pudieron cargar los doctores")
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || "No se pudieron cargar los doctores")
       }
 
       const data = await response.json()
       setDoctores(data)
     } catch (error) {
-      console.error(error)
-      setError("Error al cargar doctores")
+      console.error("Error cargando doctores:", error)
+      setError(error instanceof Error ? error.message : "Error al cargar doctores")
     }
   }
 
@@ -89,32 +95,63 @@ export default function DoctorsPage() {
       })
 
       if (!response.ok) {
-        throw new Error("No se pudieron cargar las especialidades")
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || "No se pudieron cargar las especialidades")
       }
 
       const data = await response.json()
       setEspecialidades(data)
     } catch (error) {
-      console.error(error)
-      setError("Error al cargar especialidades")
+      console.error("Error cargando especialidades:", error)
+      setError(error instanceof Error ? error.message : "Error al cargar especialidades")
     }
   }
 
   const cargarDatos = async () => {
-    setCargando(true)
-    setError("")
+    try {
+      setCargando(true)
+      setError("")
 
-    await Promise.all([
-      cargarDoctores(),
-      cargarEspecialidades(),
-    ])
-
-    setCargando(false)
+      await Promise.all([
+        cargarDoctores(),
+        cargarEspecialidades(),
+      ])
+    } catch (error) {
+      console.error("Error cargando datos:", error)
+      setError(error instanceof Error ? error.message : "Error al cargar datos")
+    } finally {
+      setCargando(false)
+    }
   }
 
   useEffect(() => {
     cargarDatos()
   }, [])
+
+  const especialidadesOrdenadas = useMemo(() => {
+    return [...especialidades].sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+    )
+  }, [especialidades])
+
+  const doctoresFiltradosOrdenados = useMemo(() => {
+    return doctores
+      .filter((doctor) => {
+        if (!filtroEspecialidad) {
+          return true
+        }
+
+        return doctor.especialidades.some(
+          (especialidad) => String(especialidad.id) === filtroEspecialidad
+        )
+      })
+      .sort((a, b) => {
+        const nombreA = `${a.nombre} ${a.apellido}`
+        const nombreB = `${b.nombre} ${b.apellido}`
+
+        return nombreA.localeCompare(nombreB, "es", { sensitivity: "base" })
+      })
+  }, [doctores, filtroEspecialidad])
 
   const limpiarFormulario = () => {
     setForm(formInicial)
@@ -235,7 +272,7 @@ export default function DoctorsPage() {
         limpiarFormulario()
       }, 600)
     } catch (error) {
-      console.error(error)
+      console.error("Error guardando doctor:", error)
       setError(error instanceof Error ? error.message : "Error al guardar doctor")
     } finally {
       setGuardando(false)
@@ -259,6 +296,7 @@ export default function DoctorsPage() {
           <button
             onClick={abrirFormularioCrear}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+            type="button"
           >
             <Plus className="h-4 w-4" />
             Nuevo doctor
@@ -272,7 +310,7 @@ export default function DoctorsPage() {
         )}
 
         {mensaje && (
-          <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent-foreground">
+          <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-foreground">
             {mensaje}
           </div>
         )}
@@ -355,17 +393,16 @@ export default function DoctorsPage() {
                 </label>
 
                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {especialidades.map((especialidad) => {
+                  {especialidadesOrdenadas.map((especialidad) => {
                     const seleccionada = form.especialidades.includes(especialidad.id)
 
                     return (
                       <label
                         key={especialidad.id}
-                        className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
-                          seleccionada
+                        className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${seleccionada
                             ? "border-primary bg-primary/10 text-foreground"
                             : "border-border bg-background text-muted-foreground hover:bg-muted/60"
-                        }`}
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -402,12 +439,50 @@ export default function DoctorsPage() {
           </div>
         )}
 
+        <div className="mb-5 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Filter className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">
+              Filtros de doctores
+            </h2>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">
+                Especialidad
+              </label>
+
+              <select
+                value={filtroEspecialidad}
+                onChange={(event) => setFiltroEspecialidad(event.target.value)}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Todas las especialidades</option>
+
+                {especialidadesOrdenadas.map((especialidad) => (
+                  <option key={especialidad.id} value={especialidad.id}>
+                    {especialidad.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <p className="mt-4 text-sm text-muted-foreground">
+            Mostrando {doctoresFiltradosOrdenados.length} de {doctores.length} doctores registrados.
+          </p>
+        </div>
+
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           <div className="border-b border-border bg-muted/30 p-4">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
               <ClipboardList className="h-5 w-5" />
               Doctores registrados
             </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Ordenados alfabéticamente por nombre.
+            </p>
           </div>
 
           <div className="overflow-x-auto">
@@ -429,14 +504,14 @@ export default function DoctorsPage() {
                       Cargando doctores...
                     </td>
                   </tr>
-                ) : doctores.length === 0 ? (
+                ) : doctoresFiltradosOrdenados.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
-                      No hay doctores registrados.
+                      No hay doctores que coincidan con el filtro seleccionado.
                     </td>
                   </tr>
                 ) : (
-                  doctores.map((doctor) => (
+                  doctoresFiltradosOrdenados.map((doctor) => (
                     <tr key={doctor.id} className="transition hover:bg-muted/50">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -475,14 +550,18 @@ export default function DoctorsPage() {
                               Sin especialidades
                             </span>
                           ) : (
-                            doctor.especialidades.map((especialidad) => (
-                              <span
-                                key={especialidad.id}
-                                className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
-                              >
-                                {especialidad.nombre}
-                              </span>
-                            ))
+                            [...doctor.especialidades]
+                              .sort((a, b) =>
+                                a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+                              )
+                              .map((especialidad) => (
+                                <span
+                                  key={especialidad.id}
+                                  className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+                                >
+                                  {especialidad.nombre}
+                                </span>
+                              ))
                           )}
                         </div>
                       </td>
@@ -491,6 +570,7 @@ export default function DoctorsPage() {
                         <button
                           onClick={() => abrirFormularioEditar(doctor)}
                           className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground transition hover:bg-muted"
+                          type="button"
                         >
                           <Edit2 className="h-3.5 w-3.5" />
                           Editar
