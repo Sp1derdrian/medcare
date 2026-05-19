@@ -409,12 +409,12 @@ function TratamientoCard({ t, muted = false }: { t: Tratamiento; muted?: boolean
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <CalendarDays className="h-3.5 w-3.5" />
-          Inicio: {formatDate(t.fecha_inicio)}
+          Inicio: <span suppressHydrationWarning>{formatDate(t.fecha_inicio)}</span>
         </span>
         {t.fecha_fin && (
           <span className="flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5" />
-            Fin: {formatDate(t.fecha_fin)}
+            Fin: <span suppressHydrationWarning>{formatDate(t.fecha_fin)}</span>
           </span>
         )}
       </div>
