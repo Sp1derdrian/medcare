@@ -374,16 +374,22 @@ export default function TratamientosPage() {
 function TratamientoCard({ t, muted = false }: { t: Tratamiento; muted?: boolean }) {
   return (
     <li className={`rounded-xl border p-4 space-y-2 ${muted ? "border-border bg-muted/30" : "border-primary/30 bg-card"}`}>
-      {/* Status badge + description */}
-      <div className="flex items-start justify-between gap-2">
-        <p className={`text-sm font-medium leading-snug ${muted ? "text-muted-foreground" : "text-foreground"}`}>
-          {t.descripcion}
-        </p>
+      {/* Status badge */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Tratamiento
+        </span>
         {!muted && (
           <span className="shrink-0 rounded-full bg-primary/10 text-primary text-xs px-2 py-0.5 font-medium">
             Activo
           </span>
         )}
+      </div>
+
+      {/* Description */}
+      <div className="rounded-lg bg-muted/50 px-3 py-2">
+        <p className="text-xs font-medium text-muted-foreground mb-0.5">Descripción</p>
+        <p className="text-sm text-foreground leading-snug">{t.descripcion}</p>
       </div>
 
       {/* Dates */}
