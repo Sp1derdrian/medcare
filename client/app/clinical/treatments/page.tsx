@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Search, Plus, Trash2, Stethoscope, CalendarDays, AlertTriangle } from "lucide-react"
+import { Search, Plus, Stethoscope, CalendarDays, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -34,7 +34,9 @@ function authHeaders() {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso + "T00:00:00").toLocaleDateString("es-MX", {
+  // Slice to 10 chars so it works whether pg returns "YYYY-MM-DD" or a full ISO timestamp
+  const datePart = String(iso).slice(0, 10)
+  return new Date(datePart + "T00:00:00").toLocaleDateString("es-MX", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -43,7 +45,7 @@ function formatDate(iso: string) {
 
 function isActive(t: Tratamiento) {
   if (!t.fecha_fin) return true
-  return new Date(t.fecha_fin + "T00:00:00") >= new Date()
+  return new Date(String(t.fecha_fin).slice(0, 10) + "T00:00:00") >= new Date()
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -370,19 +372,40 @@ export default function TratamientosPage() {
 // ─── Card component ───────────────────────────────────────────────────────────
 
 function TratamientoCard({ t, muted = false }: { t: Tratamiento; muted?: boolean }) {
+  const [expanded, setExpanded] = useState(false)
+
   return (
     <li className={`rounded-xl border p-4 space-y-2 ${muted ? "border-border bg-muted/30" : "border-primary/30 bg-card"}`}>
-      <div className="flex items-start justify-between gap-2">
-        <p className={`text-sm font-medium leading-snug ${muted ? "text-muted-foreground" : "text-foreground"}`}>
-          {t.descripcion}
-        </p>
-        {!muted && (
-          <span className="shrink-0 rounded-full bg-primary/10 text-primary text-xs px-2 py-0.5 font-medium">
-            Activo
-          </span>
-        )}
+      {/* Header row */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {!muted && (
+            <span className="shrink-0 rounded-full bg-primary/10 text-primary text-xs px-2 py-0.5 font-medium">
+              Activo
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          className="flex items-center gap-1 text-xs text-primary hover:underline focus:outline-none"
+        >
+          {expanded ? (
+            <><ChevronUp className="h-3.5 w-3.5" /> Ocultar detalles</>
+          ) : (
+            <><ChevronDown className="h-3.5 w-3.5" /> Ver detalles</>
+          )}
+        </button>
       </div>
 
+      {/* Expandable description */}
+      {expanded && (
+        <p className={`text-sm leading-snug rounded-lg px-3 py-2 bg-muted/40 ${muted ? "text-muted-foreground" : "text-foreground"}`}>
+          {t.descripcion}
+        </p>
+      )}
+
+      {/* Dates */}
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <CalendarDays className="h-3.5 w-3.5" />
@@ -396,6 +419,7 @@ function TratamientoCard({ t, muted = false }: { t: Tratamiento; muted?: boolean
         )}
       </div>
 
+      {/* Procedure chips */}
       {t.procedimientos.length > 0 && (
         <div className="flex flex-wrap gap-1 pt-1">
           {t.procedimientos.map(p => (
