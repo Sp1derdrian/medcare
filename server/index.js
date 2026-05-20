@@ -105,6 +105,8 @@ module.exports = { pool, verificarToken, requerirPermiso };
 app.use('/api/catalogos', require('./routes/catalogo_procesos'));
 app.use('/api/pacientes', require('./routes/pacientes'));
 app.use('/api/doctores', require('./routes/doctores'));
+app.use('/api/hospitalizaciones', require('./routes/hospitalizaciones'));
+app.use('/api/salas', require('./routes/salas'));
 app.use('/api/seguros', require('./routes/seguros'));
 app.use('/api/citas', require('./routes/appointments'));
 app.use('/api/citas', require('./routes/citas'));
