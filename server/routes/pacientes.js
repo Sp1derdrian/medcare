@@ -3,6 +3,7 @@
 // routes/pacientes.js
 const express = require('express');
 const router = express.Router();
+const { registrarEnBitacora } = require('./auditoria');
 
 // Importamos la conexión y el candado directamente desde tu index.js
 const { pool, verificarToken, requerirPermiso } = require('../index'); 
@@ -82,6 +83,7 @@ router.post('/crear', requerirPermiso([PERMISOS.PATIENT, PERMISOS.ADMIN]), async
     // 3. Ejecutar la consulta pasando los valores en un arreglo
     const values = [nombre, apellido, email, telefono, fecha_nacimiento, id_sexo, id_estado_civil, id_grupo_sanguineo];
     const result = await pool.query(query, values);
+    await registrarEnBitacora(req.usuario.id, 5);
 
     // 4. Responder al frontend con éxito
     res.status(201).json({

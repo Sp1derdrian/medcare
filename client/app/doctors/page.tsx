@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Stethoscope,
   Plus,
@@ -10,6 +10,7 @@ import {
   Phone,
   BadgeCheck,
   ClipboardList,
+  Filter,
 } from "lucide-react"
 import { RoleGuard } from "@/components/role-guard"
 import { PERMISOS } from "@/lib/utils"
@@ -50,8 +51,12 @@ export default function DoctorsPage() {
   const [doctores, setDoctores] = useState<Doctor[]>([])
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([])
   const [form, setForm] = useState<DoctorForm>(formInicial)
+
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [doctorEditandoId, setDoctorEditandoId] = useState<number | null>(null)
+
+  const [filtroEspecialidad, setFiltroEspecialidad] = useState("")
+
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState("")
@@ -73,14 +78,15 @@ export default function DoctorsPage() {
       })
 
       if (!response.ok) {
-        throw new Error("No se pudieron cargar los doctores")
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || "No se pudieron cargar los doctores")
       }
 
       const data = await response.json()
       setDoctores(data)
     } catch (error) {
-      console.error(error)
-      setError("Error al cargar doctores")
+      console.error("Error cargando doctores:", error)
+      setError(error instanceof Error ? error.message : "Error al cargar doctores")
     }
   }
 
@@ -91,32 +97,63 @@ export default function DoctorsPage() {
       })
 
       if (!response.ok) {
-        throw new Error("No se pudieron cargar las especialidades")
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || "No se pudieron cargar las especialidades")
       }
 
       const data = await response.json()
       setEspecialidades(data)
     } catch (error) {
-      console.error(error)
-      setError("Error al cargar especialidades")
+      console.error("Error cargando especialidades:", error)
+      setError(error instanceof Error ? error.message : "Error al cargar especialidades")
     }
   }
 
   const cargarDatos = async () => {
-    setCargando(true)
-    setError("")
+    try {
+      setCargando(true)
+      setError("")
 
-    await Promise.all([
-      cargarDoctores(),
-      cargarEspecialidades(),
-    ])
-
-    setCargando(false)
+      await Promise.all([
+        cargarDoctores(),
+        cargarEspecialidades(),
+      ])
+    } catch (error) {
+      console.error("Error cargando datos:", error)
+      setError(error instanceof Error ? error.message : "Error al cargar datos")
+    } finally {
+      setCargando(false)
+    }
   }
 
   useEffect(() => {
     cargarDatos()
   }, [])
+
+  const especialidadesOrdenadas = useMemo(() => {
+    return [...especialidades].sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
+    )
+  }, [especialidades])
+
+  const doctoresFiltradosOrdenados = useMemo(() => {
+    return doctores
+      .filter((doctor) => {
+        if (!filtroEspecialidad) {
+          return true
+        }
+
+        return doctor.especialidades.some(
+          (especialidad) => String(especialidad.id) === filtroEspecialidad
+        )
+      })
+      .sort((a, b) => {
+        const nombreA = `${a.nombre} ${a.apellido}`
+        const nombreB = `${b.nombre} ${b.apellido}`
+
+        return nombreA.localeCompare(nombreB, "es", { sensitivity: "base" })
+      })
+  }, [doctores, filtroEspecialidad])
 
   const limpiarFormulario = () => {
     setForm(formInicial)
@@ -237,7 +274,7 @@ export default function DoctorsPage() {
         limpiarFormulario()
       }, 600)
     } catch (error) {
-      console.error(error)
+      console.error("Error guardando doctor:", error)
       setError(error instanceof Error ? error.message : "Error al guardar doctor")
     } finally {
       setGuardando(false)
