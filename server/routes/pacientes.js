@@ -6,10 +6,22 @@ const router = express.Router();
 const { registrarEnBitacora } = require('./auditoria');
 
 // Importamos la conexión y el candado directamente desde tu index.js
-const { pool, verificarToken } = require('../index'); 
+const { pool, verificarToken, requerirPermiso } = require('../index'); 
+const PERMISOS = require('../utils/permisos');
+
+// --------MIDDLEWARES-----------
+// Validación con token a todas las rutas
+router.use(verificarToken);
+//Se define que todas las rutas pasen por la funcion helper requerirPermiso
 
 // CRUD
-router.get('/get/todos', verificarToken, async (req, res) => {
+router.get('/get/todos', requerirPermiso([
+    PERMISOS.PATIENT, 
+    PERMISOS.APPOINTMENTS, 
+    PERMISOS.HOSPITAL, 
+    PERMISOS.DOCTOR, 
+    PERMISOS.CLINIC,
+    PERMISOS.ADMIN]) ,async (req, res) => {
   try {
     const query = `
     SELECT p.id_paciente, p.nombre, p.apellido, p.telefono, p.email, p.id_sexo, p.id_estado_civil, p.id_grupo_sanguineo, p.fecha_nacimiento,
@@ -30,7 +42,7 @@ router.get('/get/todos', verificarToken, async (req, res) => {
 });
 
 // Gets de catálogos
-router.get('/get/sex', verificarToken, async (req,res) =>{
+router.get('/get/sex', async (req,res) =>{
   try {
     const result = await pool.query('SELECT * FROM sexo');
     res.json(result.rows);
@@ -39,7 +51,7 @@ router.get('/get/sex', verificarToken, async (req,res) =>{
   }
 });
 
-router.get('/get/civilstate', verificarToken, async (req,res) =>{
+router.get('/get/civilstate', async (req,res) =>{
   try {
     const result = await pool.query('SELECT * FROM estado_civil');
     res.json(result.rows);
@@ -47,7 +59,7 @@ router.get('/get/civilstate', verificarToken, async (req,res) =>{
     res.status(500).json({ error: 'Error en catalogo de estado_civil' });
   }
 });
-router.get('/get/bloodgroup', verificarToken, async (req,res) =>{
+router.get('/get/bloodgroup', async (req,res) =>{
   try {
     const result = await pool.query('SELECT * FROM grupo_sanguineo');
     res.json(result.rows);
@@ -57,7 +69,7 @@ router.get('/get/bloodgroup', verificarToken, async (req,res) =>{
 });
 
 // Post de pacientes
-router.post('/crear', verificarToken, async (req, res) => {
+router.post('/crear', requerirPermiso([PERMISOS.PATIENT, PERMISOS.ADMIN]), async (req, res) => {
   try {
     // 1. Extraer los datos del cuerpo de la petición (req.body)
     const { nombre, apellido, email, telefono, fecha_nacimiento, id_sexo, id_estado_civil, id_grupo_sanguineo } = req.body;
@@ -85,7 +97,7 @@ router.post('/crear', verificarToken, async (req, res) => {
   }
 });
 
-router.put('/actualizar/:id', verificarToken, async (req, res) => {
+router.put('/actualizar/:id', requerirPermiso([PERMISOS.PATIENT, PERMISOS.ADMIN]), async (req, res) => {
   try {
     // 1. Extraer los datos del cuerpo de la petición (req.body)
     const { id } = req.params;
@@ -131,6 +143,15 @@ router.put('/actualizar/:id', verificarToken, async (req, res) => {
   } catch (err) {
     console.error("Error al actualizar paciente:", err.message);
     res.status(500).json({ error: "Error interno al actualizar el paciente" });
+  }
+});
+
+router.get('/get/number', async (req,res) =>{
+  try {
+    const result = await pool.query('SELECT COUNT(id_paciente) as total_pacientes FROM pacientes');
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Error en conteo de pacientes' });
   }
 });
 

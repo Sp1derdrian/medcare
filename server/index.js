@@ -3,6 +3,7 @@ const cors = require('cors');
 const bcrypt = require('bcrypt'); // hash y salt
 const jwt = require('jsonwebtoken'); // tokens
 const { Pool } = require('pg');
+const PERMISOS = require('./utils/permisos');
 require('dotenv').config();
 
 const app = express();
@@ -48,16 +49,63 @@ const verificarToken = (req, res, next) => {
     return res.status(401).json({ error: 'Token inválido o expirado.' });
   }
 };
+
+// Función helper que valida permisos
+
+const requerirPermiso = (permisosExigidos) => {
+
+  const permisosPermitidos = Array.isArray(permisosExigidos) 
+    ? permisosExigidos 
+    : [permisosExigidos];
+
+  return async (req, res, next) => {
+    try {
+      const usuarioId = req.usuario.id;
+
+      // TODOS los permisos que tiene este usuario
+      const query = `
+        SELECT p.nombre 
+        FROM usuarios u
+        JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario
+        JOIN roles r ON ur.id_rol = r.id_rol
+        JOIN rol_permiso rp ON r.id_rol = rp.id_rol
+        JOIN permisos p ON rp.id_permiso = p.id_permiso
+        WHERE u.id_usuario = $1;
+      `;
+      const result = await pool.query(query, [usuarioId]);
+      
+      // Resultado a arreglo
+      const permisosDelUsuario = result.rows.map(row => row.nombre);
+
+      // Se verifica si se TIENE AL MENOS UNO de los permisos exigidos
+      const tienePermiso = permisosPermitidos.some(permiso => permisosDelUsuario.includes(permiso));
+
+      if (!tienePermiso) {
+        return res.status(403).json({ 
+          error: `Acceso denegado. Requieres alguno de estos permisos: ${permisosPermitidos.join(', ')}` 
+        });
+      }
+
+      next(); // Proceder con endpoint
+    } catch (err) {
+      console.error('Error en requerirPermiso:', err.message);
+      res.status(500).json({ error: 'Error verificando permisos' });
+    }
+  };
+};
+
+
 // ==========================================
-// Exportar BD y Token para los compañeros en carpeta routes
+// Exportar BD y Token para los compañeros en carpeta routes así como función helper de permisos
 // ==========================================
-module.exports = { pool, verificarToken };
+module.exports = { pool, verificarToken, requerirPermiso };
 // ==========================================
 // Conectar los nuevos archivos de rutas IMPORTANTE AGREGAR LAS RUTAS
 // ==========================================
 app.use('/api/catalogos', require('./routes/catalogo_procesos'));
 app.use('/api/pacientes', require('./routes/pacientes'));
 app.use('/api/doctores', require('./routes/doctores'));
+app.use('/api/citas', require('./routes/appointments'));
 app.use('/api/citas', require('./routes/citas'));
 // EJEMPLOS
 // app.use('/api/doctores', require('./routes/doctores')); // Cuando César lo haga
@@ -198,7 +246,7 @@ app.get('/api/me', verificarToken, async (req, res) => {
 // ==========================================
 
 // Get usuarios
-app.get('/api/get/usuarios-rol', verificarToken, async (req,res)=>{
+app.get('/api/get/usuarios-rol', verificarToken, requerirPermiso([PERMISOS.ADMIN]), async (req,res)=>{
   try{
       const query = `
       SELECT 
@@ -279,7 +327,7 @@ app.get('/api/get/permisos', verificarToken, async (req, res) => {
 // ==========================================
 
 // PUT: Actualizar el rol de un usuario
-app.put('/api/update/usuario-rol', verificarToken, async (req, res) => {
+app.put('/api/update/usuario-rol', verificarToken, requerirPermiso([PERMISOS.ADMIN]), async (req, res) => {
   
   const client = await pool.connect(); 
   
@@ -312,7 +360,7 @@ app.put('/api/update/usuario-rol', verificarToken, async (req, res) => {
 });
 
 // PUT: Asignar o quitar un permiso a un rol específico (Toggle)
-app.put('/api/update/rol-permiso', verificarToken, async (req, res) => {
+app.put('/api/update/rol-permiso', verificarToken, requerirPermiso([PERMISOS.ADMIN]), async (req, res) => {
   try {
     const { rol_id, permiso_id, asignar } = req.body;
     
@@ -342,6 +390,119 @@ app.put('/api/update/rol-permiso', verificarToken, async (req, res) => {
     console.error('Error en PUT /api/update/rol-permiso:', err.message);
     res.status(500).json({ error: 'Error al actualizar los permisos del rol' });
   }
+});
+
+app.get('/api/get/bitacora-last-five', verificarToken, async (req, res) => {
+  try {
+    
+    const query = `
+      SELECT b.id_bitacora, u.username, a.descripcion, b.fecha
+      FROM bitacora b
+      LEFT JOIN usuarios u on b.id_usuario = u.id_usuario
+      LEFT JOIN acciones a on b.id_accion = a.id_accion
+      ORDER BY fecha desc limit 5;
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error en /api/get/bitacora-last-five', err.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+app.get(
+  '/api/get/departments-stats', 
+  verificarToken, 
+  async (req, res) => {
+    try {
+
+      // Consulta avanzada con subqueries
+      const query = `
+        SELECT 
+          e.nombre AS name,
+          COALESCE(d.doc_count, 0) AS doctors,
+          COALESCE(p.pat_count, 0) AS patients,
+          -- Simulamos la ocupación generando un random entre 40 y 95
+          TRUNC(RANDOM() * (95 - 40) + 40) AS occupancy
+        FROM especialidades e
+        -- Subconsulta 1: Contamos doctores por especialidad
+        LEFT JOIN (
+          SELECT id_especialidad, COUNT(DISTINCT id_doctor) AS doc_count
+          FROM especialidad_doctor
+          GROUP BY id_especialidad
+        ) d ON e.id_especialidad = d.id_especialidad
+        -- Subconsulta 2: Contamos pacientes únicos basándonos en las citas de esos doctores
+        LEFT JOIN (
+          SELECT ed.id_especialidad, COUNT(DISTINCT c.id_paciente) AS pat_count
+          FROM especialidad_doctor ed
+          JOIN citas c ON ed.id_doctor = c.id_doctor
+          GROUP BY ed.id_especialidad
+        ) p ON e.id_especialidad = p.id_especialidad
+        ORDER BY patients DESC; -- Ordenamos para que los más ocupados salgan primero
+      `;
+      
+      const result = await pool.query(query);
+
+      // Parseamos los datos para asegurarnos de que el frontend reciba números y no strings
+      const formattedData = result.rows.map(row => ({
+        name: row.name,
+        patients: parseInt(row.patients),
+        doctors: parseInt(row.doctors),
+        occupancy: parseInt(row.occupancy)
+      }));
+
+      res.json(formattedData);
+    } catch (err) {
+      console.error('Error en /api/get/departments-stats', err.message);
+      res.status(500).json({ error: 'Error cargando estadísticas de departamentos' });
+    }
+});
+
+app.get(
+  '/api/get/appointments-today', 
+  verificarToken, 
+  async (req, res) => {
+    try {
+      // Filtramos por la fecha del servidor actual y omitimos las canceladas
+      const query = `
+        SELECT COUNT(*) as total_hoy 
+        FROM citas 
+        WHERE fecha::date = CURRENT_DATE AND estado != 'Cancelada';
+      `;
+      const result = await pool.query(query);
+      
+      res.json({ 
+        total: parseInt(result.rows[0].total_hoy) || 0 
+      });
+    } catch (err) {
+      console.error('Error en /api/get/appointments-today:', err.message);
+      res.status(500).json({ error: 'Error al obtener el conteo de citas diarias' });
+    }
+});
+
+app.get(
+  '/api/get/available-beds', 
+  verificarToken, 
+  async (req, res) => {
+    try {
+      // Asumimos un total de 50 camas en el hospital y restamos las ocupadas actualmente
+      const query = `
+        SELECT (50 - COUNT(*)) as camas_disponibles 
+        FROM hospitalizaciones 
+        WHERE fecha_alta IS NULL;
+      `;
+      const result = await pool.query(query);
+      
+      // Control de errores: Si por alguna razón hay más de 50 activos, aseguramos que no de números negativos
+      const disponibles = Math.max(0, parseInt(result.rows[0].camas_disponibles) || 0);
+      
+      res.json({ 
+        total: disponibles 
+      });
+    } catch (err) {
+      console.error('Error en /api/get/available-beds:', err.message);
+      res.status(500).json({ error: 'Error al obtener el conteo de camas disponibles' });
+    }
 });
 
 

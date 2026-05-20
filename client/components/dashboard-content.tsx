@@ -1,3 +1,4 @@
+"use client"
 import {
   Users,
   Stethoscope,
@@ -9,45 +10,9 @@ import {
   Clock,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react"
 
-const stats = [
-  {
-    label: "Total Patients",
-    value: "1,284",
-    change: "+12.5%",
-    trend: "up" as const,
-    icon: Users,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    label: "Active Doctors",
-    value: "64",
-    change: "+3.2%",
-    trend: "up" as const,
-    icon: Stethoscope,
-    color: "text-accent",
-    bgColor: "bg-accent/10",
-  },
-  {
-    label: "Appointments Today",
-    value: "42",
-    change: "-5.1%",
-    trend: "down" as const,
-    icon: CalendarDays,
-    color: "text-secondary",
-    bgColor: "bg-secondary/10",
-  },
-  {
-    label: "Available Beds",
-    value: "18",
-    change: "+2",
-    trend: "up" as const,
-    icon: BedDouble,
-    color: "text-chart-5",
-    bgColor: "bg-chart-5/10",
-  },
-]
+
 
 const recentAppointments = [
   { patient: "Alice Johnson", doctor: "Dr. Robert Lee", time: "09:00 AM", status: "Completed" },
@@ -58,10 +23,10 @@ const recentAppointments = [
 ]
 
 const statusStyles: Record<string, string> = {
-  Completed: "bg-accent/10 text-accent",
-  "In Progress": "bg-primary/10 text-primary",
-  Waiting: "bg-secondary/10 text-secondary",
-  Scheduled: "bg-muted text-muted-foreground",
+  Completada: "bg-green-100 text-green-700",
+  Confirmada: "bg-blue-100 text-blue-700",
+  Pendiente: "bg-yellow-100 text-yellow-700",
+  Cancelada: "bg-red-100 text-red-700",
 }
 
 const departments = [
@@ -71,14 +36,154 @@ const departments = [
   { name: "Pediatrics", patients: 164, doctors: 10, occupancy: 68 },
 ]
 
+interface Appointment {
+  id_cita: number
+  id_paciente: number
+  id_doctor: number
+  fecha: string
+  estado: string
+  paciente_nombre: string
+  paciente_apellido:string
+  doctor_nombre: string
+  doctor_apellido: string
+}
+
+interface Action {
+  id_bitacora: number
+  username: string 
+  descripcion: string
+  fecha: string
+}
+//funcion para dar formato a fecha
+const getTimeAgo = (fechaISO: string) => {
+  if (!fechaISO) return "";
+  const seconds = Math.floor((new Date().getTime() - new Date(fechaISO).getTime()) / 1000);
+  
+  if (seconds < 60) return "Justo ahora";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `Hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Hace ${hours} horas`;
+  const days = Math.floor(hours / 24);
+  return `Hace ${days} días`;
+};
+
 export function DashboardContent() {
+const [numPatients, setNumPatients] = useState<{ total_pacientes: number } | null>(null);
+const [numDoctors, setNumDoctors] = useState<{ total_doctores: number } | null>(null);
+const [appointmentsToday, setAppointmentsToday] = useState<{ total: number } | null>(null);
+const [availableBeds, setAvailableBeds] = useState<{ total: number } | null>(null);
+const [appointments, setAppointments] = useState<Appointment[]>([])
+const [actions, setActions] = useState<Action[]>([])
+const [departments, setDepartments] = useState<{name: string, patients: number, doctors: number, occupancy: number}[]>([]);
+//carga de datos de dashboard con endpoints
+const cargarDatos = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        
+        const config = {
+          headers: { "Authorization": `Bearer ${token}` }
+        };
+
+        const resNumPacientes = await fetch("http://localhost:4000/api/pacientes/get/number", config);
+        if (resNumPacientes.ok) {
+          const data = await resNumPacientes.json();
+          setNumPatients(data);
+        }
+
+        const resNumDoctors= await fetch("http://localhost:4000/api/doctores/get/number", config);
+        if (resNumDoctors.ok) {
+          const data = await resNumDoctors.json();
+          setNumDoctors(data);
+        }
+
+        const resAppointments = await fetch("http://localhost:4000/api/get/appointments-today", config);
+        if (resAppointments.ok) {
+          const data = await resAppointments.json();
+          setAppointmentsToday(data);
+        }
+
+        // Petición para Camas Disponibles
+        const resBeds = await fetch("http://localhost:4000/api/get/available-beds", config);
+        if (resBeds.ok) {
+          const data = await resBeds.json();
+          setAvailableBeds(data);
+        }
+
+        const resAppointments5= await fetch("http://localhost:4000/api/citas/get/cincoRecientes", config);
+        if (resAppointments5.ok) {
+          const data = await resAppointments5.json();
+          setAppointments(data);
+        }
+
+        const resActions= await fetch("http://localhost:4000/api/get/bitacora-last-five", config);
+        if (resActions.ok) {
+          const data = await resActions.json();
+          setActions(data);
+        }
+
+        const resDepts = await fetch("http://localhost:4000/api/get/departments-stats", config);
+        if (resDepts.ok) {
+          const deptsData = await resDepts.json();
+          setDepartments(deptsData);
+        }
+
+      } catch (error) {
+        console.error("Error cargando datos:", error);
+      }
+    };
+
+  useEffect(() => {
+    
+    cargarDatos();
+    
+  },[])
+const stats = [
+  {
+    label: "Total Patients",
+    value: numPatients ? numPatients.total_pacientes : 0,
+    change: "+12.5%",
+    trend: "up" as const,
+    icon: Users,
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+  },
+  {
+    label: "Active Doctors",
+    value: numDoctors ? numDoctors.total_doctores : 0,
+    change: "+3.2%",
+    trend: "up" as const,
+    icon: Stethoscope,
+    color: "text-accent",
+    bgColor: "bg-accent/10",
+  },
+  {
+    label: "Appointments Today",
+    value: appointmentsToday ? appointmentsToday.total : 0,
+    change: "-5.1%",
+    trend: "down" as const,
+    icon: CalendarDays,
+    color: "text-secondary",
+    bgColor: "bg-secondary/10",
+  },
+  {
+    label: "Available Beds",
+    value: availableBeds ? availableBeds.total : 0,
+    change: "+2",
+    trend: "up" as const,
+    icon: BedDouble,
+    color: "text-chart-5",
+    bgColor: "bg-chart-5/10",
+  },
+  ]
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          Welcome back, Dr. Smith. Here is an overview of today.
+          Welcome back. Here is an overview of today.
         </p>
       </div>
 
@@ -135,16 +240,25 @@ export function DashboardContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentAppointments.map((appt, i) => (
-                    <tr key={i} className="border-b border-border last:border-0">
-                      <td className="py-3 font-medium text-foreground">{appt.patient}</td>
-                      <td className="py-3 text-muted-foreground">{appt.doctor}</td>
-                      <td className="py-3 text-muted-foreground">{appt.time}</td>
+                  {appointments.map((appt) => (
+                    <tr key={appt.id_cita} className="border-b border-border last:border-0">
+                      <td className="py-3 font-medium text-foreground">{appt.paciente_nombre} {appt.paciente_apellido}</td>
+                      <td className="py-3 text-muted-foreground">{appt.doctor_nombre} {appt.doctor_apellido}</td>
+                      <td className="py-3 text-muted-foreground">
+                        {new Date(appt.fecha).toLocaleString('es-MX', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </td>
                       <td className="py-3">
                         <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyles[appt.status]}`}
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusStyles[appt.estado]}`}
                         >
-                          {appt.status}
+                          {appt.estado}
                         </span>
                       </td>
                     </tr>
@@ -165,41 +279,37 @@ export function DashboardContent() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 rounded-lg bg-primary/5 p-3">
-                <div className="h-2 w-2 rounded-full bg-primary" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Emergency admission</p>
-                  <p className="text-xs text-muted-foreground">2 minutes ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg bg-accent/5 p-3">
-                <div className="h-2 w-2 rounded-full bg-accent" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Surgery completed</p>
-                  <p className="text-xs text-muted-foreground">15 minutes ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg bg-secondary/5 p-3">
-                <div className="h-2 w-2 rounded-full bg-secondary" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Lab results ready</p>
-                  <p className="text-xs text-muted-foreground">32 minutes ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg bg-destructive/5 p-3">
-                <div className="h-2 w-2 rounded-full bg-destructive" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Critical alert: ICU Bed 4</p>
-                  <p className="text-xs text-muted-foreground">45 minutes ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 rounded-lg bg-muted p-3">
-                <div className="h-2 w-2 rounded-full bg-muted-foreground" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Patient discharged</p>
-                  <p className="text-xs text-muted-foreground">1 hour ago</p>
-                </div>
-              </div>
+              
+              {(!actions || actions.length === 0) ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  Cargando actividad reciente...
+                </p>
+              ) : (
+                //map para la bitacora
+                actions.map((action, index) => {
+
+                  const dotColors = ["bg-primary", "bg-accent", "bg-secondary", "bg-destructive", "bg-muted-foreground"];
+                  const boxBgs = ["bg-primary/5", "bg-accent/5", "bg-secondary/5", "bg-destructive/5", "bg-muted"];
+                  
+                  const dotColor = dotColors[index % dotColors.length];
+                  const boxBg = boxBgs[index % boxBgs.length];
+
+                  return (
+                    <div key={action.id_bitacora} className={`flex items-center gap-3 rounded-lg p-3 ${boxBg}`}>
+                      <div className={`h-2 w-2 rounded-full ${dotColor}`} />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground">
+                          {action.descripcion}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Por <span className="font-semibold">{action.username}</span> • {getTimeAgo(action.fecha)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+
             </div>
           </CardContent>
         </Card>
