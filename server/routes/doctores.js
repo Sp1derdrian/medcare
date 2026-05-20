@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 
 const { pool, verificarToken } = require('../index');
-
+const PERMISOS = require('../utils/permisos');
 // GET /api/doctores/get/todos
 // Lista doctores con sus especialidades
 router.get('/get/todos', verificarToken, async (req, res) => {
@@ -241,6 +241,15 @@ router.put('/actualizar/:id', verificarToken, async (req, res) => {
     res.status(500).json({ error: 'Error interno al actualizar doctor' });
   } finally {
     client.release();
+  }
+});
+
+router.get('/get/number', async (req,res) =>{
+  try {
+    const result = await pool.query('SELECT COUNT(id_doctor) as total_doctores FROM doctores');
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Error en conteo de doctores' });
   }
 });
 

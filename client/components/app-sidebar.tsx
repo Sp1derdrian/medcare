@@ -1,5 +1,5 @@
 "use client"
-
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -16,6 +16,7 @@ import {
   HospitalIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {PERMISOS} from "@/lib/utils"
 
 const navItems = [
   { label: "Dashboard",        href: "/dashboard",          icon: LayoutDashboard },
@@ -37,6 +38,34 @@ interface AppSidebarProps {
 
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const pathname = usePathname()
+  const [misPermisos, setMisPermisos] = useState<string[]>([])
+  
+  useEffect(() => {
+    const fetchPermisos = async () => {
+      const token = localStorage.getItem("token")
+      if (!token) return
+
+      try {
+        const res = await fetch("http://localhost:4000/api/me", {
+          headers: { "Authorization": `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          // Guardamos el arreglo de strings (ej: ['pacientes', 'citas'])
+          setMisPermisos(data.perfil?.permisos || [])
+        }
+      } catch (error) {
+        console.error("Error cargando permisos en la sidebar:", error)
+      }
+    }
+
+    fetchPermisos()
+  }, [])
+
+  // Filtramos los items antes de dibujarlos
+  const itemsPermitidos = navItems.filter(item => 
+    !item.permiso || misPermisos.includes(item.permiso)
+  )
 
   return (
     <aside
@@ -60,7 +89,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4">
         <ul className="flex flex-col gap-1">
-          {navItems.map((item) => {
+          {itemsPermitidos.map((item) => {
             const isActive = pathname === item.href
             return (
               <li key={item.href}>
