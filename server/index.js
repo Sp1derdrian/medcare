@@ -391,6 +391,119 @@ app.put('/api/update/rol-permiso', verificarToken, requerirPermiso([PERMISOS.ADM
   }
 });
 
+app.get('/api/get/bitacora-last-five', verificarToken, async (req, res) => {
+  try {
+    
+    const query = `
+      SELECT b.id_bitacora, u.username, a.descripcion, b.fecha
+      FROM bitacora b
+      LEFT JOIN usuarios u on b.id_usuario = u.id_usuario
+      LEFT JOIN acciones a on b.id_accion = a.id_accion
+      ORDER BY fecha desc limit 5;
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error en /api/get/bitacora-last-five', err.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+app.get(
+  '/api/get/departments-stats', 
+  verificarToken, 
+  async (req, res) => {
+    try {
+
+      // Consulta avanzada con subqueries
+      const query = `
+        SELECT 
+          e.nombre AS name,
+          COALESCE(d.doc_count, 0) AS doctors,
+          COALESCE(p.pat_count, 0) AS patients,
+          -- Simulamos la ocupación generando un random entre 40 y 95
+          TRUNC(RANDOM() * (95 - 40) + 40) AS occupancy
+        FROM especialidades e
+        -- Subconsulta 1: Contamos doctores por especialidad
+        LEFT JOIN (
+          SELECT id_especialidad, COUNT(DISTINCT id_doctor) AS doc_count
+          FROM especialidad_doctor
+          GROUP BY id_especialidad
+        ) d ON e.id_especialidad = d.id_especialidad
+        -- Subconsulta 2: Contamos pacientes únicos basándonos en las citas de esos doctores
+        LEFT JOIN (
+          SELECT ed.id_especialidad, COUNT(DISTINCT c.id_paciente) AS pat_count
+          FROM especialidad_doctor ed
+          JOIN citas c ON ed.id_doctor = c.id_doctor
+          GROUP BY ed.id_especialidad
+        ) p ON e.id_especialidad = p.id_especialidad
+        ORDER BY patients DESC; -- Ordenamos para que los más ocupados salgan primero
+      `;
+      
+      const result = await pool.query(query);
+
+      // Parseamos los datos para asegurarnos de que el frontend reciba números y no strings
+      const formattedData = result.rows.map(row => ({
+        name: row.name,
+        patients: parseInt(row.patients),
+        doctors: parseInt(row.doctors),
+        occupancy: parseInt(row.occupancy)
+      }));
+
+      res.json(formattedData);
+    } catch (err) {
+      console.error('Error en /api/get/departments-stats', err.message);
+      res.status(500).json({ error: 'Error cargando estadísticas de departamentos' });
+    }
+});
+
+app.get(
+  '/api/get/appointments-today', 
+  verificarToken, 
+  async (req, res) => {
+    try {
+      // Filtramos por la fecha del servidor actual y omitimos las canceladas
+      const query = `
+        SELECT COUNT(*) as total_hoy 
+        FROM citas 
+        WHERE fecha::date = CURRENT_DATE AND estado != 'Cancelada';
+      `;
+      const result = await pool.query(query);
+      
+      res.json({ 
+        total: parseInt(result.rows[0].total_hoy) || 0 
+      });
+    } catch (err) {
+      console.error('Error en /api/get/appointments-today:', err.message);
+      res.status(500).json({ error: 'Error al obtener el conteo de citas diarias' });
+    }
+});
+
+app.get(
+  '/api/get/available-beds', 
+  verificarToken, 
+  async (req, res) => {
+    try {
+      // Asumimos un total de 50 camas en el hospital y restamos las ocupadas actualmente
+      const query = `
+        SELECT (50 - COUNT(*)) as camas_disponibles 
+        FROM hospitalizaciones 
+        WHERE fecha_alta IS NULL;
+      `;
+      const result = await pool.query(query);
+      
+      // Control de errores: Si por alguna razón hay más de 50 activos, aseguramos que no de números negativos
+      const disponibles = Math.max(0, parseInt(result.rows[0].camas_disponibles) || 0);
+      
+      res.json({ 
+        total: disponibles 
+      });
+    } catch (err) {
+      console.error('Error en /api/get/available-beds:', err.message);
+      res.status(500).json({ error: 'Error al obtener el conteo de camas disponibles' });
+    }
+});
+
 
 
 
