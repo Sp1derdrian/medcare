@@ -8,6 +8,7 @@ import {
   Stethoscope,
   CalendarDays,
   Pill,
+  ClipboardList,
   Settings,
   ChevronLeft,
   Heart,
@@ -18,14 +19,16 @@ import { cn } from "@/lib/utils"
 import {PERMISOS} from "@/lib/utils"
 
 const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permiso: null },
-  { label: "Patients", href: "/patients", icon: Users, permiso: PERMISOS.PATIENT },
-  { label: "Doctors", href: "/doctors", icon: Stethoscope, permiso: PERMISOS.DOCTOR },
-  { label: "Appointments", href: "/appointments", icon: CalendarDays, permiso: PERMISOS.APPOINTMENTS },
-  { label: "Clinical Records", href: "/clinical", icon: Pill, permiso: PERMISOS.CLINIC },
-  { label: "Hospitalization", href: "/hospitalization", icon: HospitalIcon, permiso: PERMISOS.HOSPITAL },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings, permiso: PERMISOS.SETTINGS },
-  { label: "Admin", href: "/admin", icon: GemIcon, permiso: PERMISOS.ADMIN }
+  { label: "Dashboard",        href: "/dashboard",          icon: LayoutDashboard },
+  { label: "Patients",         href: "/patients",           icon: Users },
+  { label: "Doctors",          href: "/doctors",            icon: Stethoscope },
+  { label: "Appointments",     href: "/appointments",       icon: CalendarDays },
+  { label: "Expediente Clínico", href: "/clinical",                    icon: Pill },
+  { label: "Tratamientos",      href: "/clinical/treatments",          icon: Stethoscope },
+  { label: "Recetas",           href: "/prescriptions",                icon: ClipboardList },
+  { label: "Hospitalization",  href: "/hospitalization",    icon: HospitalIcon },
+  { label: "Settings",         href: "/dashboard/settings", icon: Settings },
+  { label: "Admin",            href: "/admin",              icon: GemIcon },
 ]
 
 interface AppSidebarProps {
