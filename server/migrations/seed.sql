@@ -7,7 +7,7 @@ INSERT INTO "roles" (nombre) VALUES
 ('Administrador'), ('Doctor'), ('Enfermero'), ('Recepcionista');
 
 INSERT INTO "permisos" (nombre) VALUES 
-('crear_paciente'), ('ver_expediente'), ('crear_receta'), ('asignar_rol'), ('asignar_permisos');
+('pacientes'), ('doctores'), ('citas'), ('clinica'), ('hospitalizacion'),('administrador'),('ajustes');
 -- se actualizará en base a las necesidades del front
 INSERT INTO "sexo" (descripcion) VALUES 
 ('Masculino'), ('Femenino'), ('Otro');
@@ -86,7 +86,7 @@ INSERT INTO "doctores" (nombre, apellido, cedula_profesional, telefono) VALUES
 
 -- Asignar roles a usuarios
 INSERT INTO "usuario_rol" (id_usuario, id_rol) VALUES 
-(1, 1), (1, 2), -- Adrian (Admin y Doctor)
+(1, 1),         -- Adrian (Admin y Doctor)
 (2, 4),         -- Ana (Recepcionista)
 (3, 2),         -- House (Doctor)
 (4, 2),         -- Cameron (Doctor)
@@ -94,7 +94,7 @@ INSERT INTO "usuario_rol" (id_usuario, id_rol) VALUES
 
 -- Asignar permisos a roles
 INSERT INTO "rol_permiso" (id_rol, id_permiso) VALUES 
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), -- Admin
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), -- Admin
 (2, 1), (2, 2), (2, 3),                 -- Doctor
 (4, 1);                                 -- Recepcionista
 
