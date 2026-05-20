@@ -7,6 +7,7 @@ import {
   Plus,
   Eye,
   Pencil,
+  Shield // <-- ¡Nuevo icono de escudo para los seguros!
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -42,12 +43,11 @@ interface Patient {
   id_sexo: number
   id_estado_civil: number
   id_grupo_sanguineo: number
+  id_seguro: number // <-- Adrián ya lo tenía contemplado
   sexo_nombre?: string
   ecivil_nombre?: string
   sangre_nombre?: string
 }
-
-
 
 const bloodTypeColors: Record<string, string> = {
   "O+": "bg-destructive/10 text-destructive border-destructive/20",
@@ -66,8 +66,6 @@ const sexColors: Record<string, string> = {
 }
 
 export default function PatientsContent() {
-  
-  
   const [patients, setPatients] = useState<Patient[]>([])
   const [sex, setSex] = useState<any[]>([])
   const [civil, setCivil] = useState<any[]>([])
@@ -75,7 +73,18 @@ export default function PatientsContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
-  // Form state
+  
+  // --- NUEVOS ESTADOS PARA SEGUROS (PBI 3) ---
+  const [seguroModalOpen, setSeguroModalOpen] = useState(false)
+  const [pacienteSeleccionado, setPacienteSeleccionado] = useState<Patient | null>(null)
+  const [aseguradoras, setAseguradoras] = useState<any[]>([])
+  const [tiposSeguro, setTiposSeguro] = useState<any[]>([])
+  const [seguroFormData, setSeguroFormData] = useState({
+    id_aseguradora: "",
+    id_tipo_seguro: "",
+    numero_poliza: ""
+  })
+
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
@@ -88,11 +97,9 @@ export default function PatientsContent() {
   })
 
   const filteredPatients = patients.filter((patient) => {
-    
     const nombreCompleto = `${patient.nombre || ""} ${patient.apellido || ""}`.toLowerCase()
     const telefono = patient.telefono || ""
     const query = searchQuery.toLowerCase()
-    
     return nombreCompleto.includes(query) || telefono.includes(query)
   })
 
@@ -100,77 +107,68 @@ export default function PatientsContent() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  
   const cargarDatos = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
         
-        const config = {
-          headers: { "Authorization": `Bearer ${token}` }
-        };
-
+        const config = { headers: { "Authorization": `Bearer ${token}` } };
         
         const resPacientes = await fetch("http://localhost:4000/api/pacientes/get/todos", config);
-        if (resPacientes.ok) {
-          const data = await resPacientes.json();
-          setPatients(data);
-        }
+        if (resPacientes.ok) setPatients(await resPacientes.json());
         
-
         const resSexo= await fetch("http://localhost:4000/api/pacientes/get/sex", config);
-        if (resSexo.ok) {
-          const data = await resSexo.json();
-          setSex(data);
-        }
+        if (resSexo.ok) setSex(await resSexo.json());
         
         const resCivil= await fetch("http://localhost:4000/api/pacientes/get/civilstate", config);
-        if (resCivil.ok) {
-          const data = await resCivil.json();
-          setCivil(data);
-        }
+        if (resCivil.ok) setCivil(await resCivil.json());
 
         const resBlood= await fetch("http://localhost:4000/api/pacientes/get/bloodgroup", config);
-        if (resBlood.ok) {
-          const data = await resBlood.json();
-          setBlood(data);
-        }
+        if (resBlood.ok) setBlood(await resBlood.json());
 
       } catch (error) {
         console.error("Error cargando datos:", error);
       }
-    };
+  };
+
+  // --- FUNCIÓN PARA CARGAR CATÁLOGOS DE SEGUROS ---
+  const cargarCatalogosSeguros = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const config = { headers: { "Authorization": `Bearer ${token}` } };
+      
+      const resAseg = await fetch("http://localhost:4000/api/seguros/aseguradoras", config);
+      if (resAseg.ok) setAseguradoras(await resAseg.json());
+
+      const resTipos = await fetch("http://localhost:4000/api/seguros/tipos", config);
+      if (resTipos.ok) setTiposSeguro(await resTipos.json());
+    } catch (error) {
+      console.error("Error cargando catálogos de seguros:", error);
+    }
+  }
+
   useEffect(() => {
-    
     cargarDatos();
-    
-  },[])
+  }, [])
+
   const handleEdit = (patient: Patient) => {
-    // Inyectamos los datos del paciente en el formulario
     setFormData({
         nombre: patient.nombre,
         apellido: patient.apellido,
         email: patient.email || "",
         telefono: patient.telefono || "",
-        // El split('T')[0] corta todo y solo deja "1990-01-01" para que el input type="date" no se rompa.
         fecha_nacimiento: patient.fecha_nacimiento ? patient.fecha_nacimiento.split('T')[0] : "",
         id_sexo: patient.id_sexo.toString(),
         id_estado_civil: patient.id_estado_civil ? patient.id_estado_civil.toString() : "",
         id_grupo_sanguineo: patient.id_grupo_sanguineo ? patient.id_grupo_sanguineo.toString() : "",
     })
-    
-    // Guardamos el ID para saber a quién vamos a actualizar
     setEditingId(patient.id_paciente)
-    
-    // Abrimos el Modal
     setDialogOpen(true)
-    }
+  }
 
   const handleSubmit = async () => {
     try {
         const token = localStorage.getItem("token");
-        
-        // DECISIÓN MÁGICA: ¿Es POST (Crear) o PUT (Actualizar)?
         const url = editingId 
         ? `http://localhost:4000/api/pacientes/actualizar/${editingId}` 
         : "http://localhost:4000/api/pacientes/crear";
@@ -179,32 +177,127 @@ export default function PatientsContent() {
 
         const response = await fetch(url, {
         method: method,
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(formData)
         });
 
         if (response.ok) {
-        setDialogOpen(false); 
-        await cargarDatos(); 
-        
-        // Limpiamos todo para la próxima vez
-        setFormData({
-            nombre: "", apellido: "", email: "", telefono: "",
-            fecha_nacimiento: "", id_sexo: "", id_estado_civil: "", id_grupo_sanguineo: ""
-        });
-        setEditingId(null); // Reseteamos el modo de edición
-        
-        alert(editingId ? "¡Paciente actualizado!" : "¡Paciente registrado!");
+          setDialogOpen(false); 
+          await cargarDatos(); 
+          setFormData({ nombre: "", apellido: "", email: "", telefono: "", fecha_nacimiento: "", id_sexo: "", id_estado_civil: "", id_grupo_sanguineo: "" });
+          setEditingId(null);
+          alert(editingId ? "¡Paciente actualizado!" : "¡Paciente registrado!");
         } else {
-        alert("Error al guardar");
+          alert("Error al guardar");
         }
     } catch (error) {
         console.error("Error:", error);
+    }
+  };
+
+ const abrirModalSeguros = async (patient: Patient) => {
+    setPacienteSeleccionado(patient);
+    await cargarCatalogosSeguros();
+    
+    // Si el paciente ya tiene seguro, rescatamos la información de la BD
+    if (patient.id_seguro) {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`http://localhost:4000/api/seguros/poliza/${patient.id_seguro}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const poliza = await res.json();
+          if (poliza) {
+            // Pre-llenamos el formulario con los datos actuales
+            setSeguroFormData({
+              id_aseguradora: poliza.id_aseguradora.toString(),
+              id_tipo_seguro: poliza.id_tipo_seguro.toString(),
+              numero_poliza: poliza.numero_poliza
+            });
+          }
         }
-    };
+      } catch (error) {
+        console.error("Error al cargar la póliza actual:", error);
+      }
+    } else {
+      // Si no tiene, limpiamos el formulario para un registro limpio
+      setSeguroFormData({ id_aseguradora: "", id_tipo_seguro: "", numero_poliza: "" });
+    }
+    setSeguroModalOpen(true);
+  }
+
+  const handleAgregarAseguradora = async () => {
+    const nombre = window.prompt("Ingrese el nombre de la nueva Aseguradora:");
+    if (!nombre) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:4000/api/seguros/aseguradoras", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ nombre })
+      });
+      if (res.ok) {
+        alert("Aseguradora agregada con éxito");
+        cargarCatalogosSeguros(); // Refrescamos el select
+      }
+    } catch (error) {
+      console.error("Error al agregar aseguradora", error);
+    }
+  }
+
+ const handleVincularSeguro = async () => {
+    if (!seguroFormData.id_aseguradora || !seguroFormData.id_tipo_seguro || !seguroFormData.numero_poliza) {
+      alert("Por favor llena todos los campos de la póliza."); return;
+    }
+    
+    try {
+      const token = localStorage.getItem("token");
+      const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+
+      if (pacienteSeleccionado?.id_seguro) {
+        // --- MODO EDICIÓN: Actualizar póliza existente ---
+        const resUpdate = await fetch(`http://localhost:4000/api/seguros/poliza/${pacienteSeleccionado.id_seguro}`, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify(seguroFormData)
+        });
+        
+        if (resUpdate.ok) {
+          alert("¡Póliza actualizada con éxito!");
+          setSeguroModalOpen(false);
+          cargarDatos(); // Refrescamos la tabla principal
+        } else {
+          alert("Error al actualizar la póliza.");
+        }
+      } else {
+        // --- MODO CREACIÓN: Crear nueva póliza y vincular ---
+        const resPoliza = await fetch("http://localhost:4000/api/seguros/poliza", {
+          method: "POST", headers, body: JSON.stringify(seguroFormData)
+        });
+        
+        if (!resPoliza.ok) throw new Error("No se pudo crear la póliza");
+        const polizaCreada = await resPoliza.json();
+
+        const resVincular = await fetch("http://localhost:4000/api/seguros/vincular-paciente", {
+          method: "PUT", headers, body: JSON.stringify({
+            id_paciente: pacienteSeleccionado?.id_paciente,
+            id_seguro: polizaCreada.id_seguro
+          })
+        });
+
+        if (resVincular.ok) {
+          alert("¡Póliza creada y vinculada al paciente exitosamente!");
+          setSeguroModalOpen(false);
+          setSeguroFormData({ id_aseguradora: "", id_tipo_seguro: "", numero_poliza: "" });
+          cargarDatos();
+        }
+      }
+    } catch (error) {
+      console.error("Error al procesar seguro:", error);
+      alert("Ocurrió un error al procesar el seguro.");
+    }
+  }
 
   return (
     <RoleGuard permisoRequerido={PERMISOS.PATIENT}>
@@ -416,4 +509,3 @@ export default function PatientsContent() {
     </RoleGuard>
   )
 }
-
